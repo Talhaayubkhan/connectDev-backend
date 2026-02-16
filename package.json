@@ -1,0 +1,16 @@
+{
+  "name": "devconnect-backend",
+  "version": "1.0.0",
+  "description": "\"backend of devConnect Prject - developer platform to meetup\"",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "author": "\"Talha Ayub\"",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1",
+    "mongoose": "^9.2.1"
+  }
+}
