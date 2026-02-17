@@ -5,15 +5,23 @@ const User = require("./models/userSchema");
 app.use(express.json());
 
 app.post("/signUp", async (req, res) => {
-  // console.log(req.body);
-  const userData = req.body;
-
-  const user = new User(userData);
   try {
+    const userData = req.body;
+
+    const user = new User(userData);
+
     await user.save();
-    res.send("User Added Successfully!");
+
+    res.status(201).send({
+      success: true,
+      message: "User Added Successfully",
+      data: user,
+    });
   } catch (err) {
-    res.status(400).send("Error while saving the request!", err.message);
+    res.status(400).send({
+      success: false,
+      message: err.message,
+    });
   }
 });
 
@@ -38,20 +46,29 @@ app.delete("/user", async (req, res) => {
   }
 });
 
-app.patch("/user", async (req, res) => {
-  const userId = req.body.userId;
+app.patch("/user/:userId", async (req, res) => {
+  const userId = req.params?.userId;
   const userData = req.body;
 
   try {
-    const user = await User.findByIdAndUpdate({ _id: userId }, userData, {
-      returnDocument: "after",
-      runValidators: true,
+    const ISALLOWEDUPDATE = ["skills", "about", "age", "photoURL", "gender"];
+
+    const checkUpdate = Object.keys(userData).every((k) => {
+      return ISALLOWEDUPDATE.includes(k);
     });
-    console.log(user);
+
+    if (!checkUpdate) {
+      throw new Error("Not allowed the updates!");
+    }
+
+    const user = await User.findByIdAndUpdate(userId, userData, {
+      runValidators: true,
+      returnDocument: "after",
+    });
 
     res.send("User updated successfully!");
   } catch (error) {
-    res.status(400).send("Something Went wrong!");
+    res.status(400).send("Update Failed!" + error.message);
   }
 });
 

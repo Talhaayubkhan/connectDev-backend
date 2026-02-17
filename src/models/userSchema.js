@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
+const validator = require("validator");
 
 const userSchema = new Schema(
   {
@@ -14,7 +15,6 @@ const userSchema = new Schema(
       type: String,
       trim: true,
       maxlength: 50,
-      default: "",
     },
 
     email: {
@@ -23,13 +23,22 @@ const userSchema = new Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^\S+@\S+\.\S+$/, "Please use a valid email"],
+      validate(value) {
+        if (!validator.isEmail(value)) {
+          throw new Error("Enter a valid email address");
+        }
+      },
     },
 
     password: {
       type: String,
       required: true,
       minlength: 6,
+      validate(value) {
+        if (!validator.isStrongPassword(value)) {
+          throw new Error("Enter a strong password");
+        }
+      },
     },
 
     age: {
@@ -40,7 +49,7 @@ const userSchema = new Schema(
 
     gender: {
       type: String,
-      enum: ["male", "female", "others"],
+      enum: ["male", "female", "other"],
       default: "other",
     },
 
@@ -48,6 +57,11 @@ const userSchema = new Schema(
       type: String,
       default: "https://default-avatar.com/avatar.png",
       trim: true,
+      validate(value) {
+        if (!validator.isURL(value)) {
+          throw new Error("Enter a valid URL");
+        }
+      },
     },
 
     skills: {
