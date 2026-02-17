@@ -1,10 +1,14 @@
 const express = require("express");
 const app = express();
 const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
 const User = require("./models/userSchema");
 const { validateSignupData } = require("./utils/validation");
+const { isAuthCheck } = require("./middlewares/auth");
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.post("/signUp", async (req, res) => {
   try {
@@ -69,7 +73,7 @@ app.post("/login", async (req, res) => {
     }
 
     // 5. Compare password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await user.validatePassword(password);
 
     if (!isMatch) {
       return res.status(401).json({
@@ -77,6 +81,11 @@ app.post("/login", async (req, res) => {
         message: "Invalid credentials",
       });
     }
+
+    // token generate
+    const token = await user.getSignJWT();
+
+    res.cookie("token", token);
 
     // 6. Send success response
     res.status(200).json({
@@ -93,6 +102,28 @@ app.post("/login", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error",
+    });
+  }
+});
+
+app.get("/profile", isAuthCheck, async (req, res) => {
+  try {
+    const user = req.user;
+
+    res.status(200).json({
+      success: true,
+      message: "Profile fetched successfully",
+      data: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: "Something Went Wrong",
     });
   }
 });
