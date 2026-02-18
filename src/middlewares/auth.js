@@ -2,10 +2,10 @@ const User = require("../models/userSchema");
 const jwt = require("jsonwebtoken");
 
 const isAuthCheck = async (req, res, next) => {
+  const token = req.cookies?.token;
+  if (!token)
+    return res.status(401).json({ success: false, message: "Unauthorized" });
   try {
-    const token = req.cookies?.token;
-    // console.log(token);
-
     const decoded = await jwt.verify(token, "CONNECTDEV@111");
 
     // 3. Extract userId from token
@@ -27,7 +27,7 @@ const isAuthCheck = async (req, res, next) => {
   } catch (error) {
     res.status(401).json({
       success: false,
-      message: "Invalid or expired token",
+      message: "Invalid Token",
     });
   }
 };

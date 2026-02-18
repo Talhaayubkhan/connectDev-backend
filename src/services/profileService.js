@@ -1,17 +1,43 @@
 const User = require("../models/userSchema");
+const { validateProfileData } = require("../utils/validation");
 
-const updateProfileService = async (userId, updateData) => {
-  const allowed = ["skills", "about", "age", "photoURL", "gender"];
+const updateProfileService = async (updateData, presentUser) => {
+  validateProfileData(updateData);
 
-  const isValid = Object.keys(updateData).every((k) => allowed.includes(k));
-
-  if (!isValid) throw new Error("Not allowed updates");
-
-  const user = await User.findByIdAndUpdate(userId, updateData, {
-    runValidators: true,
+  Object.keys(updateData).forEach((key) => {
+    presentUser[key] = updateData[key];
   });
 
-  return { user };
+  await presentUser.save();
+
+  return presentUser;
 };
 
-module.exports = { updateProfileService };
+const changeUserPassword = async (userId, currentPassword, newPassword) => {
+  if (!currentPassword || !newPassword) {
+    throw new Error("Both passwords are required");
+  }
+
+  const user = await User.findById(userId);
+  // console.log(user);
+
+  if (!user) throw new Error("User not found");
+
+  const isMatch = await user.validatePassword(currentPassword);
+
+  if (!isMatch) throw new Error("Current password is incorrect");
+
+  const isSame = await user.validatePassword(newPassword);
+  if (isSame) throw new Error("New password cannot be same as old password");
+
+  if (newPassword.length < 8) {
+    throw new Error("Password must be at least 8 characters");
+  }
+
+  user.password = newPassword;
+
+  await user.save();
+  return true;
+};
+
+module.exports = { updateProfileService, changeUserPassword };

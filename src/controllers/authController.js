@@ -45,7 +45,19 @@ const userLogin = async (req, res) => {
   }
 };
 
+const userLogout = (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+  });
+  // Send response to client
+  res.status(200).json({
+    success: true,
+    message: "Logout successful",
+  });
+};
+
 module.exports = {
   userSignUp,
   userLogin,
+  userLogout,
 };

@@ -7,13 +7,11 @@ const signupService = async (userData) => {
 
   const { firstName, lastName, email, password } = userData;
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-
   const user = new User({
     firstName,
     lastName,
     email,
-    password: hashedPassword,
+    password,
   });
 
   await user.save();

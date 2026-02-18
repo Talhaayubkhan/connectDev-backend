@@ -1,4 +1,9 @@
-const { updateProfileService } = require("../services/profileService");
+const User = require("../models/userSchema");
+const {
+  updateProfileService,
+  changeUserPassword,
+} = require("../services/profileService");
+const bcrypt = require("bcrypt");
 
 const getProfile = async (req, res) => {
   try {
@@ -21,28 +26,45 @@ const getProfile = async (req, res) => {
     });
   }
 };
-
-const profileUpdate = async (req, res) => {
+const profileEdit = async (req, res) => {
   try {
-    const userId = req.params?.userId;
     const userData = req.body;
-    const { user } = await updateProfileService(userId, userData);
+    const loggedInUser = req.user;
 
-    const { password, __v, ...safeUser } = user.toObject();
+    const updatedUser = await updateProfileService(userData, loggedInUser);
+
+    const { password, __v, ...safeUser } = updatedUser.toObject();
 
     res.status(200).json({
       success: true,
-      message: "Profile Updated successfully",
+      message: "Profile updated successfully",
       data: safeUser,
     });
   } catch (error) {
-    console.error(error);
-
-    res.status(error || 400).json({
+    res.status(400).json({
       success: false,
       message: error.message || "Update failed",
     });
   }
 };
 
-module.exports = { getProfile, profileUpdate };
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user;
+
+    await changeUserPassword(userId, currentPassword, newPassword);
+
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+module.exports = { getProfile, profileEdit, changePassword };

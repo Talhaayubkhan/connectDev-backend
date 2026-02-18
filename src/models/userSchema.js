@@ -83,12 +83,22 @@ const userSchema = new Schema(
   },
 );
 
+userSchema.pre("save", async function (next) {
+  try {
+    if (!this.isModified("password")) return next();
+
+    this.password = await bcrypt.hash(this.password, 10);
+  } catch (error) {
+    next(error);
+  }
+});
+
 userSchema.methods.getSignJWT = async function () {
   return await jwt.sign({ _id: this._id }, "CONNECTDEV@111");
 };
 
-userSchema.methods.validatePassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+userSchema.methods.validatePassword = async function (passwordInput) {
+  return await bcrypt.compare(passwordInput, this.password);
 };
 const UserModel = mongoose.model("User", userSchema);
 
