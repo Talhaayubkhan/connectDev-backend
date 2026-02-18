@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const isAuthCheck = async (req, res, next) => {
   try {
     const token = req.cookies?.token;
+    // console.log(token);
 
     const decoded = await jwt.verify(token, "CONNECTDEV@111");
 
