@@ -77,24 +77,26 @@ const userSchema = new Schema(
       default: "Hey there! I am using ConnectDev.",
       trim: true,
     },
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true, // adds createdAt & updatedAt automatically
   },
 );
 
-userSchema.pre("save", async function (next) {
-  try {
-    if (!this.isModified("password")) return next();
-
-    this.password = await bcrypt.hash(this.password, 10);
-  } catch (error) {
-    next(error);
-  }
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+  this.password = await bcrypt.hash(this.password, 10);
 });
 
 userSchema.methods.getSignJWT = async function () {
-  return await jwt.sign({ _id: this._id }, "CONNECTDEV@111");
+  return await jwt.sign(
+    { _id: this._id, tokenVersion: this.tokenVersion },
+    "CONNECTDEV@111",
+  );
 };
 
 userSchema.methods.validatePassword = async function (passwordInput) {

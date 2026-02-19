@@ -57,7 +57,7 @@ const validateProfileData = (data) => {
     throw new Error("About must be between 25 and 100 characters");
   }
 
-  if (data.skills.length < 1 || data.skills.length > 20) {
+  if (data.skills.length < 1 || !data.skills.length > 20) {
     throw new Error("Skills must contain 1 to 20 items");
   }
 

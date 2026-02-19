@@ -1,23 +1,20 @@
 const User = require("../models/userSchema");
 const { validateProfileData } = require("../utils/validation");
 
-const updateProfileService = async (updateData, presentUser) => {
-  validateProfileData(updateData);
+const updateProfileService = async (bodyData, presentUser) => {
+  if (!validateProfileData(bodyData)) {
+    throw new Error("Invalid data");
+  }
 
-  Object.keys(updateData).forEach((key) => {
-    presentUser[key] = updateData[key];
+  Object.keys(bodyData).forEach((key) => {
+    presentUser[key] = bodyData[key];
   });
-
   await presentUser.save();
 
   return presentUser;
 };
 
 const changeUserPassword = async (userId, currentPassword, newPassword) => {
-  if (!currentPassword || !newPassword) {
-    throw new Error("Both passwords are required");
-  }
-
   const user = await User.findById(userId);
   // console.log(user);
 
@@ -35,7 +32,7 @@ const changeUserPassword = async (userId, currentPassword, newPassword) => {
   }
 
   user.password = newPassword;
-
+  user.tokenVersion += 1;
   await user.save();
   return true;
 };

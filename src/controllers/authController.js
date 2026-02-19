@@ -23,6 +23,7 @@ const userLogin = async (req, res) => {
     const { email, password } = req.body;
 
     const { user, token } = await loginService(email, password);
+    // console.log("user controller", user);
 
     res.cookie("token", token, { httpOnly: true });
 

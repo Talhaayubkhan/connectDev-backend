@@ -1,19 +1,14 @@
-const bcrypt = require("bcrypt");
 const User = require("../models/userSchema");
 const { validateSignupData } = require("../utils/validation");
 
 const signupService = async (userData) => {
   validateSignupData(userData);
-
   const { firstName, lastName, email, password } = userData;
 
-  const user = new User({
-    firstName,
-    lastName,
-    email,
-    password,
-  });
+  const isExistEmail = await User.findOne({ email });
+  if (isExistEmail) throw new Error("Email already exists!");
 
+  const user = new User({ firstName, lastName, email, password });
   await user.save();
 
   return {

@@ -1,13 +1,17 @@
-const User = require("../models/userSchema");
 const {
   updateProfileService,
   changeUserPassword,
 } = require("../services/profileService");
-const bcrypt = require("bcrypt");
 
 const getProfile = async (req, res) => {
   try {
     const user = req.user;
+    const { password } = user;
+
+    if (!password) {
+      throw new Error("Inavlid Credentials!");
+    }
+    // console.log(user);
 
     res.status(200).json({
       success: true,
@@ -26,14 +30,16 @@ const getProfile = async (req, res) => {
     });
   }
 };
+
 const profileEdit = async (req, res) => {
   try {
     const userData = req.body;
     const loggedInUser = req.user;
+    // console.log("before filtered!", loggedInUser);
 
     const updatedUser = await updateProfileService(userData, loggedInUser);
 
-    const { password, __v, ...safeUser } = updatedUser.toObject();
+    const { password, __v, tokenVersion, ...safeUser } = updatedUser.toObject();
 
     res.status(200).json({
       success: true,
@@ -48,7 +54,7 @@ const profileEdit = async (req, res) => {
   }
 };
 
-const changePassword = async (req, res) => {
+const changeProfilePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user;
@@ -67,4 +73,4 @@ const changePassword = async (req, res) => {
   }
 };
 
-module.exports = { getProfile, profileEdit, changePassword };
+module.exports = { getProfile, profileEdit, changeProfilePassword };

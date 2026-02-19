@@ -4,11 +4,11 @@ const { isAuthCheck } = require("../middlewares/auth");
 const {
   getProfile,
   profileEdit,
-  changePassword,
+  changeProfilePassword,
 } = require("../controllers/profileController");
 
 router.get("/profile/view", isAuthCheck, getProfile);
 router.patch("/profile/edit", isAuthCheck, profileEdit);
-router.patch("/profile/changePassword", isAuthCheck, changePassword);
+router.patch("/profile/changePassword", isAuthCheck, changeProfilePassword);
 
 module.exports = router;
