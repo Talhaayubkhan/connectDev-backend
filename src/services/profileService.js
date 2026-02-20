@@ -1,4 +1,5 @@
 const User = require("../models/userSchema");
+const { NotFoundError, ValidationError } = require("../utils/errors");
 const { validateProfileData } = require("../utils/validation");
 
 const updateProfileService = async (bodyData, presentUser) => {
@@ -18,17 +19,18 @@ const changeUserPassword = async (userId, currentPassword, newPassword) => {
   const user = await User.findById(userId);
   // console.log(user);
 
-  if (!user) throw new Error("User not found");
+  if (!user) throw new NotFoundError("User not found");
 
   const isMatch = await user.validatePassword(currentPassword);
 
-  if (!isMatch) throw new Error("Current password is incorrect");
+  if (!isMatch) throw new ValidationError("Current password is incorrect");
 
   const isSame = await user.validatePassword(newPassword);
-  if (isSame) throw new Error("New password cannot be same as old password");
+  if (isSame)
+    throw new ValidationError("New password cannot be same as old password");
 
   if (newPassword.length < 8) {
-    throw new Error("Password must be at least 8 characters");
+    throw new ValidationError("Password must be at least 8 characters");
   }
 
   user.password = newPassword;

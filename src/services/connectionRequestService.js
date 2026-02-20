@@ -3,12 +3,6 @@ const User = require("../models/userSchema");
 const { NotFoundError, ValidationError } = require("../utils/errors");
 
 const sendConnectionRequest = async (senderId, receiverId, status) => {
-  // validate status
-  const allowed = ["interested", "ignored"];
-  if (!allowed.includes(status)) {
-    throw new ValidationError("Invalid status");
-  }
-
   // check user exists
   const user = await User.findById(receiverId);
   if (!user) {
@@ -35,5 +29,21 @@ const sendConnectionRequest = async (senderId, receiverId, status) => {
   });
   return await request.save();
 };
+const acceptConnectionRequest = async (userId, requestId, status) => {
+  const request = await ConnectionRequest.findOne({
+    _id: requestId,
+    receiverUserId: userId,
+    status: "interested",
+  });
 
-module.exports = { sendConnectionRequest };
+  if (!request) {
+    throw new NotFoundError("Connection request not found");
+  }
+
+  request.status = status;
+  await request.save();
+
+  return request;
+};
+
+module.exports = { sendConnectionRequest, acceptConnectionRequest };

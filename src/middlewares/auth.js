@@ -1,11 +1,12 @@
 const User = require("../models/userSchema");
 const jwt = require("jsonwebtoken");
+const { AuthError, NotFoundError } = require("../utils/errors");
 
 const isAuthCheck = async (req, res, next) => {
   try {
     const token = req.cookies?.token;
     if (!token) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
+      throw new AuthError("Invalid Token");
     }
     const decoded = await jwt.verify(token, "CONNECTDEV@111");
     // console.log("decoed values ", decoded);
@@ -19,17 +20,11 @@ const isAuthCheck = async (req, res, next) => {
     // console.log(user);
 
     if (decoded.tokenVersion !== user.tokenVersion) {
-      return res.status(401).json({
-        success: false,
-        message: "Session expired. Please login again.",
-      });
+      throw new AuthError("Session expired. Please login again.");
     }
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+      throw new NotFoundError("User not found");
     }
 
     req.user = user;

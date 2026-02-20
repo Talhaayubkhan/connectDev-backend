@@ -6,13 +6,13 @@ const connectionSchema = new Schema(
     // fromUserId
     senderUserId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      // ref: "User",
       required: true,
     },
     // toUserId
     receiverUserId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      // ref: "User",
       required: true,
     },
 

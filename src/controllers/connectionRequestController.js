@@ -1,9 +1,9 @@
 const {
   sendConnectionRequest,
+  acceptConnectionRequest,
 } = require("../services/connectionRequestService");
-const User = require("../models/userSchema");
 
-const sendRequest = async (req, res) => {
+const sendRequest = async (req, res, next) => {
   try {
     const senderId = req.user._id;
     const receiverId = req.params.toUserId;
@@ -17,11 +17,25 @@ const sendRequest = async (req, res) => {
       data,
     });
   } catch (error) {
-    return res.status(400).json({
-      success: false,
-      message: error.message,
+    next(error);
+  }
+};
+const acceptRequest = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { requestId, status } = req.params;
+
+    const result = await acceptConnectionRequest(userId, requestId, status);
+    const { __v, ...rest } = result.toObject();
+
+    res.status(200).json({
+      success: true,
+      message: `Connection request ${status}`,
+      data: rest,
     });
+  } catch (error) {
+    next(error);
   }
 };
 
-module.exports = { sendRequest };
+module.exports = { sendRequest, acceptRequest };

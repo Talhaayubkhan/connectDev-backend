@@ -1,4 +1,5 @@
 const User = require("../models/userSchema");
+const { ValidationError, NotFoundError } = require("../utils/errors");
 const { validateSignupData } = require("../utils/validation");
 
 const signupService = async (userData) => {
@@ -6,7 +7,7 @@ const signupService = async (userData) => {
   const { firstName, lastName, email, password } = userData;
 
   const isExistEmail = await User.findOne({ email });
-  if (isExistEmail) throw new Error("Email already exists!");
+  if (isExistEmail) throw new ValidationError("Email already exists!");
 
   const user = new User({ firstName, lastName, email, password });
   await user.save();
@@ -21,11 +22,11 @@ const signupService = async (userData) => {
 const loginService = async (email, password) => {
   const user = await User.findOne({ email });
 
-  if (!user) throw new Error("Invalid credentials");
+  if (!user) throw new NotFoundError("Invalid credentials");
 
   const isMatch = await user.validatePassword(password);
 
-  if (!isMatch) throw new Error("Invalid credentials");
+  if (!isMatch) throw new ValidationError("Invalid credentials");
 
   const token = await user.getSignJWT();
 
