@@ -8,7 +8,7 @@ const isAuthCheck = async (req, res, next) => {
     if (!token) {
       throw new AuthError("Invalid Token");
     }
-    const decoded = await jwt.verify(token, "CONNECTDEV@111");
+    const decoded = await jwt.verify(token, process.env.JWT_SECRET);
     // console.log("decoed values ", decoded);
 
     // 3. Extract userId from token

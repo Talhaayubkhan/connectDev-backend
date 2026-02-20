@@ -2,7 +2,8 @@ const { ValidationError } = require("../utils/errors");
 
 const validateStatus = (allowedStatuses) => {
   return (req, res, next) => {
-    if (!allowedStatuses.includes(req.params.status)) {
+    const status = req.params.status;
+    if (!allowedStatuses.includes(status)) {
       return next(new ValidationError("Invalid status"));
     }
     next();

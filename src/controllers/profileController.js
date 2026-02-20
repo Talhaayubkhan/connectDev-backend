@@ -39,7 +39,7 @@ const profileEdit = async (req, res) => {
 
     const updatedUser = await updateProfileService(userData, loggedInUser);
 
-    const { password, __v, tokenVersion, ...safeUser } = updatedUser.toObject();
+    const { password, tokenVersion, ...safeUser } = updatedUser.toObject();
 
     res.status(200).json({
       success: true,

@@ -84,6 +84,7 @@ const userSchema = new Schema(
   },
   {
     timestamps: true, // adds createdAt & updatedAt automatically
+    versionKey: false,
   },
 );
 
@@ -95,7 +96,7 @@ userSchema.pre("save", async function () {
 userSchema.methods.getSignJWT = async function () {
   return await jwt.sign(
     { _id: this._id, tokenVersion: this.tokenVersion },
-    "CONNECTDEV@111",
+    process.env.JWT_SECRET,
   );
 };
 

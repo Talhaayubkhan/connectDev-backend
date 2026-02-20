@@ -26,12 +26,11 @@ const acceptRequest = async (req, res, next) => {
     const { requestId, status } = req.params;
 
     const result = await acceptConnectionRequest(userId, requestId, status);
-    const { __v, ...rest } = result.toObject();
 
     res.status(200).json({
       success: true,
       message: `Connection request ${status}`,
-      data: rest,
+      data: result,
     });
   } catch (error) {
     next(error);

@@ -9,6 +9,10 @@ const sendConnectionRequest = async (senderId, receiverId, status) => {
     throw new NotFoundError("Receiver user not found");
   }
 
+  if (senderId.toString() === receiverId.toString()) {
+    throw new ValidationError("Cannot send request to yourself");
+  }
+
   // check duplicate request
   const exists = await ConnectionRequest.findOne({
     $or: [
@@ -27,6 +31,7 @@ const sendConnectionRequest = async (senderId, receiverId, status) => {
     receiverUserId: receiverId,
     status: status,
   });
+
   return await request.save();
 };
 const acceptConnectionRequest = async (userId, requestId, status) => {

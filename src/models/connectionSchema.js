@@ -6,13 +6,13 @@ const connectionSchema = new Schema(
     // fromUserId
     senderUserId: {
       type: mongoose.Schema.Types.ObjectId,
-      // ref: "User",
+      ref: "User",
       required: true,
     },
     // toUserId
     receiverUserId: {
       type: mongoose.Schema.Types.ObjectId,
-      // ref: "User",
+      ref: "User",
       required: true,
     },
 
@@ -24,7 +24,12 @@ const connectionSchema = new Schema(
   },
   {
     timestamps: true,
+    versionKey: false,
   },
+);
+connectionSchema.index(
+  { senderUserId: 1, receiverUserId: 1 },
+  { unique: true },
 );
 
 const ConnectionRequestModel = mongoose.model(
