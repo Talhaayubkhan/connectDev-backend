@@ -3,11 +3,15 @@ const validator = require("validator");
 const validateSignupData = (data) => {
   const { firstName, lastName, email, password } = data;
 
-  if (!firstName || !lastName) {
-    throw new Error("First name and last name are required");
+  if (!validator.isLength(firstName?.trim(), { min: 2, max: 50 })) {
+    throw new Error("First name must be between 2 and 50 characters");
   }
 
-  if (!email || !validator.isEmail(email)) {
+  if (!validator.isLength(lastName?.trim() || "", { min: 2, max: 50 })) {
+    throw new Error("Last name must be between 2 and 50 characters");
+  }
+
+  if (!email || !validator.isEmail(email?.trim() || "")) {
     throw new Error("Please provide a valid email");
   }
 
@@ -21,9 +25,7 @@ const validateSignupData = (data) => {
       minSymbols: 0,
     })
   ) {
-    throw new Error(
-      "Password must be at least 8 characters and include uppercase, lowercase, and a number",
-    );
+    throw new Error("Password too weak");
   }
 
   return true;

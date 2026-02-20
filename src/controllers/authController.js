@@ -25,7 +25,11 @@ const userLogin = async (req, res) => {
     const { user, token } = await loginService(email, password);
     // console.log("user controller", user);
 
-    res.cookie("token", token, { httpOnly: true });
+    res.cookie("token", token, {
+      httpOnly: true,
+      sameSite: "strict", // Prevents CSRF
+      maxAge: 24 * 60 * 60 * 1000, // 1 day expiry
+    });
 
     // 6. Send success response
     res.status(200).json({
@@ -41,7 +45,7 @@ const userLogin = async (req, res) => {
   } catch (error) {
     res.status(401).json({
       success: false,
-      message: error.message,
+      message: error.message || "Login failed",
     });
   }
 };
@@ -49,7 +53,9 @@ const userLogin = async (req, res) => {
 const userLogout = (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
+    sameSite: "strict",
   });
+
   // Send response to client
   res.status(200).json({
     success: true,

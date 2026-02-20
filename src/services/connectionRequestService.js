@@ -1,5 +1,6 @@
 const ConnectionRequest = require("../models/connectionSchema");
 const User = require("../models/userSchema");
+const { SENDER_FIELDS } = require("../utils/constants");
 const { NotFoundError, ValidationError } = require("../utils/errors");
 
 const sendConnectionRequest = async (senderId, receiverId, status) => {
@@ -51,4 +52,32 @@ const acceptConnectionRequest = async (userId, requestId, status) => {
   return request;
 };
 
-module.exports = { sendConnectionRequest, acceptConnectionRequest };
+const getPendingReceivedRequests = async (userId) => {
+  const requests = await ConnectionRequest.find({
+    receiverUserId: userId,
+    status: "interested",
+  }).populate("senderUserId", SENDER_FIELDS.join(" "));
+
+  return requests; // return array, empty if none
+};
+
+const getAcceptedReceivedRequests = async (userId) => {
+  const acceptedRequest = await ConnectionRequest.find({
+    $or: [
+      { senderUserId: userId, status: "accepted" },
+      { receiverUserId: userId, status: "accepted" },
+    ],
+  })
+    .populate("senderUserId", SENDER_FIELDS.join(" "))
+    .populate("receiverUserId", SENDER_FIELDS.join(" "))
+    .sort({ updatedAt: -1 }); // latest accepted first
+
+  return acceptedRequest; // return array, empty if none
+};
+
+module.exports = {
+  sendConnectionRequest,
+  acceptConnectionRequest,
+  getPendingReceivedRequests,
+  getAcceptedReceivedRequests,
+};
