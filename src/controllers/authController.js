@@ -63,8 +63,45 @@ const userLogout = (req, res) => {
   });
 };
 
+const {
+  forgotPasswordService,
+  resetPasswordService,
+} = require("../services/authServices");
+
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    await forgotPasswordService(email);
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset email sent",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    await resetPasswordService(token, newPassword);
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset successful",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   userSignUp,
   userLogin,
   userLogout,
+  forgotPassword,
+  resetPassword,
 };

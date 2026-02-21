@@ -2,16 +2,11 @@ const {
   updateProfileService,
   changeUserPassword,
 } = require("../services/profileService");
+const createPasswordDTO = require("../utils/changePasswordDTO");
 
-const getProfile = async (req, res) => {
+const getProfile = async (req, res, next) => {
   try {
     const user = req.user;
-    const { password } = user;
-
-    if (!password) {
-      throw new Error("Inavlid Credentials!");
-    }
-    // console.log(user);
 
     res.status(200).json({
       success: true,
@@ -24,22 +19,18 @@ const getProfile = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-const profileEdit = async (req, res) => {
+const profileEdit = async (req, res, next) => {
   try {
-    const userData = req.body;
-    const loggedInUser = req.user;
-    // console.log("before filtered!", loggedInUser);
+    const updatedUser = await updateProfileService(req.body, req.user);
 
-    const updatedUser = await updateProfileService(userData, loggedInUser);
+    const { password, tokenVersion, email, ...safeUser } =
+      updatedUser.toObject();
 
-    const { password, tokenVersion, ...safeUser } = updatedUser.toObject();
+    // console.log(safeUser);
 
     res.status(200).json({
       success: true,
@@ -47,18 +38,14 @@ const profileEdit = async (req, res) => {
       data: safeUser,
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message || "Update failed",
-    });
+    next(error);
   }
 };
 
-const changeProfilePassword = async (req, res) => {
+const changeProfilePassword = async (req, res, next) => {
   try {
-    const { currentPassword, newPassword } = req.body;
-    const userId = req.user;
-
+    const { currentPassword, newPassword } = createPasswordDTO(req.body);
+    const userId = req.user._id;
     await changeUserPassword(userId, currentPassword, newPassword);
 
     res.status(200).json({
@@ -66,10 +53,7 @@ const changeProfilePassword = async (req, res) => {
       message: "Password changed successfully",
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 

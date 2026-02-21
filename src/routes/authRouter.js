@@ -5,10 +5,21 @@ const {
   userLogin,
   userLogout,
 } = require("../controllers/authController");
-const loginLimiter = require("../utils/rateLimiting");
+const {
+  loginLimiter,
+  forgotPasswordLimiter,
+} = require("../utils/rateLimiting");
 
-router.post("/signup", userSignUp);
-router.post("/login", loginLimiter, userLogin);
-router.post("/logout", userLogout);
+const {
+  forgotPassword,
+  resetPassword,
+} = require("../controllers/authController");
+
+router.post("/auth/signup", userSignUp);
+router.post("/auth/login", loginLimiter, userLogin);
+router.post("/auth/logout", userLogout);
+
+router.post("/auth/forgot-password", forgotPasswordLimiter, forgotPassword);
+router.patch("/auth/reset-password", resetPassword);
 
 module.exports = router;

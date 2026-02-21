@@ -81,6 +81,12 @@ const userSchema = new Schema(
       type: Number,
       default: 0,
     },
+    resetPasswordToken: {
+      type: String,
+    },
+    resetPasswordExpires: {
+      type: Date,
+    },
   },
   {
     timestamps: true, // adds createdAt & updatedAt automatically
