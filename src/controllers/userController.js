@@ -1,6 +1,7 @@
 const {
   getPendingReceivedRequests,
   getAcceptedReceivedRequests,
+  getFeedService,
 } = require("../services/connectionRequestService");
 const { NotFoundError } = require("../utils/errors");
 
@@ -54,8 +55,27 @@ const showAllAcceptedRequests = async (req, res, next) => {
   }
 };
 
+const feed = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const users = await getFeedService(userId, limit, skip);
+
+    res.status(200).json({
+      success: true,
+      message: "Feed fetched successfully",
+      data: users,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   showAllReceivedRequests,
   showAllAcceptedRequests,
-  showAllAcceptedRequests,
+  feed,
 };

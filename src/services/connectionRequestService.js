@@ -75,9 +75,38 @@ const getAcceptedReceivedRequests = async (userId) => {
   return acceptedRequest; // return array, empty if none
 };
 
+const getFeedService = async (userId, limit, skip) => {
+  // Get all connection requests involving the user
+  const connections = await ConnectionRequest.find({
+    $or: [{ senderUserId: userId }, { receiverUserId: userId }],
+  }).select("senderUserId receiverUserId");
+
+  // Build blacklist
+  const hiddenUsers = new Set();
+
+  connections.forEach((conn) => {
+    hiddenUsers.add(conn.senderUserId.toString());
+    hiddenUsers.add(conn.receiverUserId.toString());
+  });
+
+  // Always exclude self
+  hiddenUsers.add(userId.toString());
+
+  // Fetch feed users
+  const users = await User.find({
+    _id: { $nin: Array.from(hiddenUsers) },
+  })
+    .skip(skip)
+    .limit(limit)
+    .select(SENDER_FIELDS);
+
+  return users;
+};
+
 module.exports = {
   sendConnectionRequest,
   acceptConnectionRequest,
   getPendingReceivedRequests,
   getAcceptedReceivedRequests,
+  getFeedService,
 };
