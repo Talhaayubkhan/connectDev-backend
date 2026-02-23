@@ -77,6 +77,10 @@ const userSchema = new Schema(
       default: "Hey there! I am using ConnectDev.",
       trim: true,
     },
+    isActive: {
+      type: Boolean,
+      default: true, // new users are active by default
+    },
     tokenVersion: {
       type: Number,
       default: 0,

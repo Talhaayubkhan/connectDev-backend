@@ -74,35 +74,48 @@ const getAcceptedReceivedRequests = async (userId) => {
 
   return acceptedRequest; // return array, empty if none
 };
-
 const getFeedService = async (userId, limit, skip) => {
-  // Get all connection requests involving the user
+  // STEP 1: Fetch only required connection IDs
   const connections = await ConnectionRequest.find({
     $or: [{ senderUserId: userId }, { receiverUserId: userId }],
-  }).select("senderUserId receiverUserId");
+  })
+    .select("senderUserId receiverUserId")
+    .lean();
 
-  // Build blacklist
-  const hiddenUsers = new Set();
+  // STEP 2: Build exclusion set
+  const excludedUserIds = new Set();
 
   connections.forEach((conn) => {
-    hiddenUsers.add(conn.senderUserId.toString());
-    hiddenUsers.add(conn.receiverUserId.toString());
+    excludedUserIds.add(conn.senderUserId.toString());
+    excludedUserIds.add(conn.receiverUserId.toString());
   });
 
   // Always exclude self
-  hiddenUsers.add(userId.toString());
+  excludedUserIds.add(userId.toString());
 
-  // Fetch feed users
+  const excludedArray = [...excludedUserIds];
+
+  // STEP 3: Fetch one extra record to detect next page
   const users = await User.find({
-    _id: { $nin: Array.from(hiddenUsers) },
+    _id: { $nin: excludedArray },
+    isActive: true,
   })
+    .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(limit)
-    .select(SENDER_FIELDS);
+    .limit(limit + 1)
+    .select(SENDER_FIELDS)
+    .lean();
 
-  return users;
+  // STEP 4: Determine next page
+  let hasNextPage = false;
+
+  if (users.length > limit) {
+    hasNextPage = true;
+    users.pop(); // remove extra record
+  }
+
+  return { users, hasNextPage };
 };
-
 module.exports = {
   sendConnectionRequest,
   acceptConnectionRequest,
