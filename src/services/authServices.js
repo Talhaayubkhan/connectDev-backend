@@ -10,16 +10,23 @@ const signupService = async (userData) => {
     lastName: userData.lastName?.trim(),
     email: userData.email?.toLowerCase().trim(),
     password: userData.password,
+    confrimPassword: userData.confrimPassword,
   };
 
   validateSignupData(sanitizedData);
-  const { firstName, lastName, email, password } = sanitizedData;
+  const { firstName, lastName, email, password, confrimPassword } =
+    sanitizedData;
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new ValidationError("Email already exists!");
   }
-  const user = new User({ firstName, lastName, email, password });
+  const user = new User({
+    firstName,
+    lastName,
+    email,
+    password,
+  });
   await user.save();
 
   return {

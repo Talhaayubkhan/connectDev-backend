@@ -2,11 +2,13 @@ const validator = require("validator");
 const { ValidationError } = require("./errors");
 
 const validateSignupData = (data) => {
-  let { firstName, lastName, email, password } = data;
+  let { firstName, lastName, email, password, confrimPassword } = data;
 
   firstName = firstName?.trim();
   lastName = lastName?.trim();
   email = email?.trim().toLowerCase();
+  password = password?.trim();
+  confrimPassword = confrimPassword?.trim();
 
   if (!firstName || !validator.isLength(firstName, { min: 2, max: 50 })) {
     throw new ValidationError("First name must be between 2 and 50 characters");
@@ -31,6 +33,10 @@ const validateSignupData = (data) => {
     })
   ) {
     throw new ValidationError("Password must be stronger");
+  }
+
+  if (!confrimPassword || password !== confrimPassword) {
+    throw new ValidationError("Confrim Password Required!");
   }
 
   return true;

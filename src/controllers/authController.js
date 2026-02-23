@@ -1,6 +1,6 @@
 const { signupService, loginService } = require("../services/authServices");
 
-const userSignUp = async (req, res) => {
+const userSignUp = async (req, res, next) => {
   try {
     const data = req.body;
     const user = await signupService(data);
@@ -10,15 +10,12 @@ const userSignUp = async (req, res) => {
       message: "User registered successfully",
       data: user,
     });
-  } catch (err) {
-    res.status(400).json({
-      success: false,
-      message: err.message || "Something went wrong",
-    });
+  } catch (error) {
+    next(error);
   }
 };
 
-const userLogin = async (req, res) => {
+const userLogin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -43,10 +40,7 @@ const userLogin = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(401).json({
-      success: false,
-      message: error.message || "Login failed",
-    });
+    next(error);
   }
 };
 
@@ -62,11 +56,6 @@ const userLogout = (req, res) => {
     message: "Logout successful",
   });
 };
-
-const {
-  forgotPasswordService,
-  resetPasswordService,
-} = require("../services/authServices");
 
 const forgotPassword = async (req, res, next) => {
   try {
