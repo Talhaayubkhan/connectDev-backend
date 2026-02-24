@@ -18,26 +18,18 @@ const userSignUp = async (req, res, next) => {
 const userLogin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-
     const { user, token } = await loginService(email, password);
-    // console.log("user controller", user);
 
     res.cookie("token", token, {
       httpOnly: true,
-      sameSite: "strict", // Prevents CSRF
-      maxAge: 24 * 60 * 60 * 1000, // 1 day expiry
+      sameSite: "strict",
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
-    // 6. Send success response
     res.status(200).json({
       success: true,
       message: "Login successful",
-      data: {
-        id: user._id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-      },
+      data: user, // includes safe fields only
     });
   } catch (error) {
     next(error);

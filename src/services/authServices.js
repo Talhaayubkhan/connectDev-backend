@@ -74,7 +74,7 @@ const forgotPasswordService = async (email) => {
 
   // Generate secure random token
   const token = crypto.randomBytes(32).toString("hex");
-  console.log("get the main token", token);
+  // console.log("get the main token", token);
 
   // Hash token before saving for security
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
