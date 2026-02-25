@@ -16,7 +16,7 @@ const {
 } = require("../controllers/authController");
 
 router.post("/auth/signup", userSignUp);
-router.post("/auth/login", loginLimiter, userLogin);
+router.post("/auth/login", userLogin);
 router.post("/auth/logout", userLogout);
 
 router.post("/auth/forgot-password", forgotPasswordLimiter, forgotPassword);

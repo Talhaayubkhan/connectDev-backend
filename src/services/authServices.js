@@ -41,7 +41,6 @@ const loginService = async (email, password) => {
   if (!email || !password) {
     throw new ValidationError("Email and password are required");
   }
-
   const normalizedEmail = email.trim().toLowerCase();
 
   const user = await User.findOne({ email: normalizedEmail });
@@ -63,6 +62,12 @@ const loginService = async (email, password) => {
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
+    photoURL: user.photoURL,
+    about: user.about,
+    age: user.age,
+    skils: user.skills,
+    gender: user.gender,
+    isActive: user.isActive,
   };
 
   return { user: safeUser, token };
