@@ -6,7 +6,7 @@ const isAuthCheck = async (req, res, next) => {
   try {
     const token = req.cookies?.token;
     if (!token) {
-      throw new AuthError("Invalid Token");
+      throw new AuthError("Please login to access this resource");
     }
     const decoded = await jwt.verify(token, process.env.JWT_SECRET);
     // console.log("decoed values ", decoded);
@@ -30,10 +30,7 @@ const isAuthCheck = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    res.status(401).json({
-      success: false,
-      message: "Invalid Token",
-    });
+    next(error);
   }
 };
 

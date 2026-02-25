@@ -7,16 +7,13 @@ const createPasswordDTO = require("../utils/changePasswordDTO");
 const getProfile = async (req, res, next) => {
   try {
     const user = req.user;
+    // console.log(user);
+    const { email, password, tokenVersion, ...safeUser } = user.toObject();
 
     res.status(200).json({
       success: true,
       message: "Profile fetched successfully",
-      data: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-      },
+      data: safeUser,
     });
   } catch (error) {
     next(error);
