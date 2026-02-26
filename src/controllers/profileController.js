@@ -45,6 +45,8 @@ const changeProfilePassword = async (req, res, next) => {
     const userId = req.user._id;
     await changeUserPassword(userId, currentPassword, newPassword);
 
+    res.clearCookie("token");
+
     res.status(200).json({
       success: true,
       message: "Password changed successfully",

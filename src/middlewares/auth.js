@@ -26,7 +26,8 @@ const isAuthCheck = async (req, res, next) => {
     if (!user) {
       throw new NotFoundError("User not found");
     }
-
+    // ✅ update lastSeen on every request
+    user.lastSeen = new Date();
     req.user = user;
     next();
   } catch (error) {

@@ -1,6 +1,9 @@
 const User = require("../models/userSchema");
 const { NotFoundError, ValidationError } = require("../utils/errors");
-const { validateProfileData, validatPassword } = require("../utils/validation");
+const {
+  validateProfileData,
+  validatePassword,
+} = require("../utils/validation");
 
 const updateProfileService = async (bodyData, presentUser) => {
   validateProfileData(bodyData);
@@ -28,7 +31,7 @@ const changeUserPassword = async (userId, currentPassword, newPassword) => {
   if (isSame)
     throw new ValidationError("New password cannot be same as old password");
 
-  validatPassword(newPassword);
+  validatePassword(newPassword);
 
   user.password = newPassword;
   // we do this if somebody change password, so it again login with new one to access other apis!

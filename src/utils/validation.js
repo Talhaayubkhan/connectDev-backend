@@ -2,13 +2,13 @@ const validator = require("validator");
 const { ValidationError } = require("./errors");
 
 const validateSignupData = (data) => {
-  let { firstName, lastName, email, password, confrimPassword } = data;
+  let { firstName, lastName, email, password, confirmPassword } = data;
 
   firstName = firstName?.trim();
   lastName = lastName?.trim();
   email = email?.trim().toLowerCase();
   password = password?.trim();
-  confrimPassword = confrimPassword?.trim();
+  confirmPassword = confirmPassword?.trim();
 
   if (!firstName || !validator.isLength(firstName, { min: 2, max: 50 })) {
     throw new ValidationError("First name must be between 2 and 50 characters");
@@ -32,11 +32,13 @@ const validateSignupData = (data) => {
       minSymbols: 0,
     })
   ) {
-    throw new ValidationError("Password must be stronger");
+    throw new ValidationError(
+      "Password must be at least 8 characters with uppercase and number",
+    );
   }
 
-  if (!confrimPassword || password !== confrimPassword) {
-    throw new ValidationError("Confrim Password Required!");
+  if (!confirmPassword || password !== confirmPassword) {
+    throw new ValidationError("Passwords do not match");
   }
 
   return true;
@@ -61,6 +63,20 @@ const validateProfileData = (data) => {
     throw new ValidationError("Some fields are not allowed to update");
   }
 
+  if (
+    data.firstName &&
+    !validator.isLength(data.firstName.trim(), { min: 2, max: 50 })
+  ) {
+    throw new ValidationError("First name must be between 2 and 50 characters");
+  }
+
+  if (
+    data.lastName &&
+    !validator.isLength(data.lastName.trim(), { min: 2, max: 50 })
+  ) {
+    throw new ValidationError("Last name must be between 2 and 50 characters");
+  }
+
   if (data.photoURL && !validator.isURL(data.photoURL)) {
     throw new ValidationError("Invalid photo URL");
   }
@@ -69,18 +85,20 @@ const validateProfileData = (data) => {
     throw new ValidationError("About must be between 25 and 300 characters");
   }
 
-  if (data.skills) {
+  if (data.skills !== undefined) {
     if (!Array.isArray(data.skills)) {
       throw new ValidationError("Skills must be an array");
     }
-
-    if (data.skills.length < 1 || data.skills.length > 20) {
-      throw new ValidationError("Skills must contain 1 to 20 items");
+    if (data.skills.length > 20) {
+      throw new ValidationError("Skills cannot exceed 20 items");
     }
   }
 
-  if (data.age && !validator.isInt(data.age.toString(), { min: 13, max: 70 })) {
-    throw new ValidationError("Age must be between 13 and 70");
+  if (
+    data.age &&
+    !validator.isInt(data.age.toString(), { min: 18, max: 100 })
+  ) {
+    throw new ValidationError("Age must be between 18 and 100");
   }
 
   return true;
@@ -96,7 +114,7 @@ const validatePassword = (password) => {
       minSymbols: 0,
     })
   ) {
-    throw new Error("Password too weak");
+    throw new ValidationError("Password too weak");
   }
   return true;
 };

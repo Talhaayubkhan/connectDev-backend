@@ -16,9 +16,9 @@ const userSchema = new Schema(
     lastName: {
       type: String,
       trim: true,
+      minlength: 2,
       maxlength: 50,
     },
-
     email: {
       type: String,
       required: true,
@@ -31,11 +31,10 @@ const userSchema = new Schema(
         }
       },
     },
-
     password: {
       type: String,
       required: true,
-      minlength: 6,
+      minlength: 8,
       validate(value) {
         if (!validator.isStrongPassword(value)) {
           throw new Error("Enter a strong password");
@@ -44,16 +43,14 @@ const userSchema = new Schema(
     },
     age: {
       type: Number,
-      min: 13,
+      min: 18,
       max: 100,
     },
-
     gender: {
       type: String,
       enum: ["male", "female", "other"],
       default: "other",
     },
-
     photoURL: {
       type: String,
       default: "https://default-avatar.com/avatar.png",
@@ -64,12 +61,15 @@ const userSchema = new Schema(
         }
       },
     },
-
     skills: {
       type: [String],
       default: [],
+      validate(value) {
+        if (value.length > 10) {
+          throw new Error("Cannot add more than 10 skills");
+        }
+      },
     },
-
     about: {
       type: String,
       maxlength: 500,
@@ -78,11 +78,15 @@ const userSchema = new Schema(
     },
     isActive: {
       type: Boolean,
-      default: true, // new users are active by default
+      default: true,
     },
     tokenVersion: {
       type: Number,
       default: 0,
+    },
+    lastSeen: {
+      type: Date,
+      default: Date.now,
     },
     resetPasswordToken: {
       type: String,
@@ -92,7 +96,7 @@ const userSchema = new Schema(
     },
   },
   {
-    timestamps: true, // adds createdAt & updatedAt automatically
+    timestamps: true,
     versionKey: false,
   },
 );
@@ -102,16 +106,17 @@ userSchema.pre("save", async function () {
   this.password = await bcrypt.hash(this.password, 10);
 });
 
-userSchema.methods.getSignJWT = async function () {
-  return await jwt.sign(
+userSchema.methods.getSignJWT = function () {
+  return jwt.sign(
     { _id: this._id, tokenVersion: this.tokenVersion },
     process.env.JWT_SECRET,
+    { expiresIn: "7d" },
   );
 };
 
 userSchema.methods.validatePassword = async function (passwordInput) {
   return await bcrypt.compare(passwordInput, this.password);
 };
-const UserModel = mongoose.model("User", userSchema);
 
+const UserModel = mongoose.model("User", userSchema);
 module.exports = UserModel;
