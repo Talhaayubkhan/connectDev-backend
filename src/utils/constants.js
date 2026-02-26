@@ -6,6 +6,7 @@ const SENDER_FIELDS = [
   "age",
   "gender",
   "about",
+  "skills",
 ];
 
 const CORS_OPTIONS = {
