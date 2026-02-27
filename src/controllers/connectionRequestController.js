@@ -10,6 +10,7 @@ const sendRequest = async (req, res, next) => {
     const status = req.params.status;
 
     const data = await sendConnectionRequest(senderId, receiverId, status);
+    // console.log(data);
 
     return res.status(201).json({
       success: true,
