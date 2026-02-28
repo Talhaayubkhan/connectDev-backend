@@ -10,12 +10,11 @@ const signupService = async (userData) => {
     lastName: userData.lastName?.trim(),
     email: userData.email?.toLowerCase().trim(),
     password: userData.password,
-    confrimPassword: userData.confrimPassword,
+    confirmPassword: userData.confirmPassword,
   };
 
   validateSignupData(sanitizedData);
-  const { firstName, lastName, email, password, confrimPassword } =
-    sanitizedData;
+  const { firstName, lastName, email, password } = sanitizedData;
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
