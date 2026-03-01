@@ -2,7 +2,8 @@ const crypto = require("node:crypto");
 const User = require("../models/userSchema");
 const { ValidationError, NotFoundError } = require("../utils/errors");
 const { validateSignupData, validatePassword } = require("../utils/validation");
-const sendEmail = require("../utils/sendEmail");
+const sendEmail = require("../utils/email/sendEmail");
+const resetPasswordTemplate = require("../utils/email/resetPasswordTemplate");
 
 const signupService = async (userData) => {
   const sanitizedData = {
@@ -74,45 +75,39 @@ const loginService = async (email, password) => {
 
 const forgotPasswordService = async (email) => {
   const user = await User.findOne({ email });
-  if (!user) throw new NotFoundError("User not found");
+  // Do not reveal user existence
+  if (!user) return;
 
-  // Generate secure random token
   const token = crypto.randomBytes(32).toString("hex");
-  // console.log("get the main token", token);
-
-  // Hash token before saving for security
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-  // Save hashed token + expiry
   user.resetPasswordToken = hashedToken;
-  user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+  user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
 
   await user.save();
 
-  // Build reset link containing original token
-  const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
-  const message = `Click to reset password: ${resetURL}`;
+  const resetURL = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+  const html = resetPasswordTemplate(resetURL);
 
-  await sendEmail(user.email, "Password Reset", message);
+  await sendEmail(user.email, "Password Reset", html);
 };
-const resetPasswordService = async (token, newPassword) => {
-  // Hash incoming token
+
+const resetPasswordService = async (token, newPassword, confirmPassword) => {
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-  // Find user with valid token and not expired
   const user = await User.findOne({
     resetPasswordToken: hashedToken,
     resetPasswordExpires: { $gt: Date.now() },
   });
 
-  if (!user) throw new Error("Invalid or expired token");
+  if (!user) {
+    throw new ValidationError("Invalid or expired token");
+  }
 
-  validatePassword(newPassword);
+  validatePassword(newPassword, confirmPassword);
 
-  // Update password
   user.password = newPassword;
 
-  // Remove reset fields
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
 

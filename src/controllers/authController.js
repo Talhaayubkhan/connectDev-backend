@@ -1,4 +1,9 @@
-const { signupService, loginService } = require("../services/authServices");
+const {
+  signupService,
+  loginService,
+  forgotPasswordService,
+  resetPasswordService,
+} = require("../services/authServices");
 
 const userSignUp = async (req, res, next) => {
   try {
@@ -66,9 +71,9 @@ const forgotPassword = async (req, res, next) => {
 
 const resetPassword = async (req, res, next) => {
   try {
-    const { token, newPassword } = req.body;
+    const { token, newPassword, confirmPassword } = req.body;
 
-    await resetPasswordService(token, newPassword);
+    await resetPasswordService(token, newPassword, confirmPassword);
 
     res.status(200).json({
       success: true,
