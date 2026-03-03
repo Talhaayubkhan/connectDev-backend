@@ -1,4 +1,4 @@
-const AppError = require("../AppError");
+const AppError = require("./AppError");
 
 class ValidationError extends AppError {
   constructor(message = "Validation Error") {

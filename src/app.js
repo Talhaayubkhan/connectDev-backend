@@ -15,12 +15,11 @@ const profileRouter = require("./routes/profileRouter");
 const connctionRequestRouter = require("./routes/connectionRequestRoutes");
 const userRouter = require("./routes/userRouter");
 
-// console.log("Frontend URL for CORS:", process.env.FRONTEND_URL);
-
 app.use("/", authRouter);
 app.use("/", profileRouter);
 app.use("/", connctionRequestRouter);
 app.use("/", userRouter);
 
 app.use(errorHandler);
+
 module.exports = app;
