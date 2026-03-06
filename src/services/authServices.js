@@ -1,9 +1,12 @@
 const crypto = require("node:crypto");
 const User = require("../models/userSchema");
-const { ValidationError, NotFoundError } = require("../utils/errors");
+const {
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+} = require("../utils/errors");
 const { validateSignupData, validatePassword } = require("../utils/validation");
-const sendEmail = require("../utils/email/sendEmail");
-const resetPasswordTemplate = require("../utils/email/resetPasswordTemplate");
+const { sendEmail, buildResetEmailHTML } = require("../utils/email/sendEmail");
 
 const signupService = async (userData) => {
   const sanitizedData = {
@@ -15,18 +18,17 @@ const signupService = async (userData) => {
   };
 
   validateSignupData(sanitizedData);
+
   const { firstName, lastName, email, password } = sanitizedData;
 
   const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    throw new ValidationError("Email already exists!");
-  }
-  const user = new User({
-    firstName,
-    lastName,
-    email,
-    password,
-  });
+  // WHY ConflictError not ValidationError?
+  // ValidationError = wrong format/missing field (400)
+  // ConflictError = valid data but already exists (409)
+  // Frontend can handle 409 differently — "sign in instead?" prompt
+  if (existingUser) throw new ConflictError("Email already registered.");
+
+  const user = new User({ firstName, lastName, email, password });
   await user.save();
 
   return {
@@ -39,35 +41,33 @@ const signupService = async (userData) => {
 
 const loginService = async (email, password) => {
   if (!email || !password) {
-    throw new ValidationError("Email and password are required");
+    throw new ValidationError("Email and password are required.");
   }
-  const normalizedEmail = email.trim().toLowerCase();
 
+  const normalizedEmail = email.trim().toLowerCase();
   const user = await User.findOne({ email: normalizedEmail });
 
-  if (!user) {
-    throw new ValidationError("Invalid email or password");
-  }
+  // WHY same message for both cases?
+  // Security: don't reveal whether email exists
+  if (!user) throw new ValidationError("Invalid email or password.");
 
   const isMatch = await user.validatePassword(password);
-
-  if (!isMatch) {
-    throw new ValidationError("Invalid email or password");
-  }
+  if (!isMatch) throw new ValidationError("Invalid email or password.");
 
   const token = await user.getSignJWT();
 
   const safeUser = {
-    id: user._id,
+    _id: user._id,
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
     photoURL: user.photoURL,
     about: user.about,
     age: user.age,
-    skils: user.skills,
+    skills: user.skills, // WHY fixed: was "skils" typo — frontend was getting undefined
     gender: user.gender,
     isActive: user.isActive,
+    lastSeen: user.lastSeen,
   };
 
   return { user: safeUser, token };
@@ -75,24 +75,41 @@ const loginService = async (email, password) => {
 
 const forgotPasswordService = async (email) => {
   const user = await User.findOne({ email });
-  // Do not reveal user existence
+  // WHY return silently?
+  // Don't reveal whether email exists — security best practice
   if (!user) return;
+
+  // Cooldown — prevent spam
+  if (
+    user.resetPasswordExpires &&
+    user.resetPasswordExpires > Date.now() + 14 * 60 * 1000
+  ) {
+    throw new ValidationError(
+      "Reset email already sent. Please wait before requesting again.",
+    );
+  }
 
   const token = crypto.randomBytes(32).toString("hex");
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
   user.resetPasswordToken = hashedToken;
   user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
-
   await user.save();
 
-  const resetURL = `${process.env.FRONTEND_URL}/reset-password/${token}`;
-  const html = resetPasswordTemplate(resetURL);
+  // WHY query param not path param?
+  // Frontend uses useSearchParams() — reads ?token=...
+  // Path param (/reset-password/:token) would cause 404
+  const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
 
-  await sendEmail(user.email, "Password Reset", html);
+  await sendEmail(user.email, "Reset your password", {
+    text: `Reset your password: ${resetURL}\n\nExpires in 15 minutes.`,
+    html: buildResetEmailHTML(resetURL),
+  });
 };
 
 const resetPasswordService = async (token, newPassword, confirmPassword) => {
+  if (!token) throw new ValidationError("Reset token is required.");
+
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
   const user = await User.findOne({
@@ -100,20 +117,16 @@ const resetPasswordService = async (token, newPassword, confirmPassword) => {
     resetPasswordExpires: { $gt: Date.now() },
   });
 
-  if (!user) {
-    throw new ValidationError("Invalid or expired token");
-  }
+  // WHY vague message?
+  // Don't tell attacker whether token is invalid vs expired
+  if (!user) throw new ValidationError("Reset link is invalid or has expired.");
 
   validatePassword(newPassword, confirmPassword);
 
   user.password = newPassword;
-
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
-
-  // Invalidate existing sessions
-  user.tokenVersion += 1;
-
+  user.tokenVersion += 1; // invalidate all existing sessions
   await user.save();
 };
 

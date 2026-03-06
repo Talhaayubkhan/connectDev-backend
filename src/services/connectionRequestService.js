@@ -1,20 +1,20 @@
 const ConnectionRequest = require("../models/connectionSchema");
 const User = require("../models/userSchema");
 const { SENDER_FIELDS } = require("../utils/constants");
-const { NotFoundError, ValidationError } = require("../utils/errors");
+const {
+  NotFoundError,
+  ValidationError,
+  ConflictError,
+} = require("../utils/errors");
 
 const sendConnectionRequest = async (senderId, receiverId, status) => {
-  // check user exists
   const user = await User.findById(receiverId);
-  if (!user) {
-    throw new NotFoundError("Receiver user not found");
-  }
+  if (!user) throw new NotFoundError("User not found.");
 
   if (senderId.toString() === receiverId.toString()) {
-    throw new ValidationError("Cannot send request to yourself");
+    throw new ValidationError("Cannot send request to yourself.");
   }
 
-  // check duplicate request
   const exists = await ConnectionRequest.findOne({
     $or: [
       { senderUserId: senderId, receiverUserId: receiverId },
@@ -22,19 +22,19 @@ const sendConnectionRequest = async (senderId, receiverId, status) => {
     ],
   });
 
-  if (exists) {
-    throw new ValidationError("Connection already exists");
-  }
+  // WHY ConflictError not ValidationError?
+  // Data is valid — conflict is that it already exists
+  if (exists) throw new ConflictError("Connection already exists.");
 
-  // create request
   const request = new ConnectionRequest({
     senderUserId: senderId,
     receiverUserId: receiverId,
-    status: status,
+    status,
   });
 
   return await request.save();
 };
+
 const acceptConnectionRequest = async (userId, requestId, status) => {
   const request = await ConnectionRequest.findOne({
     _id: requestId,
@@ -42,27 +42,22 @@ const acceptConnectionRequest = async (userId, requestId, status) => {
     status: "interested",
   });
 
-  if (!request) {
-    throw new NotFoundError("Connection request not found");
-  }
+  if (!request) throw new NotFoundError("Connection request not found.");
 
   request.status = status;
   await request.save();
-
   return request;
 };
 
 const getPendingReceivedRequests = async (userId) => {
-  const requests = await ConnectionRequest.find({
+  return await ConnectionRequest.find({
     receiverUserId: userId,
     status: "interested",
   }).populate("senderUserId", SENDER_FIELDS.join(" "));
-
-  return requests; // return array, empty if none
 };
 
 const getAcceptedReceivedRequests = async (userId) => {
-  const acceptedRequest = await ConnectionRequest.find({
+  return await ConnectionRequest.find({
     $or: [
       { senderUserId: userId, status: "accepted" },
       { receiverUserId: userId, status: "accepted" },
@@ -70,34 +65,25 @@ const getAcceptedReceivedRequests = async (userId) => {
   })
     .populate("senderUserId", SENDER_FIELDS.join(" "))
     .populate("receiverUserId", SENDER_FIELDS.join(" "))
-    .sort({ updatedAt: -1 }); // latest accepted first
-
-  return acceptedRequest; // return array, empty if none
+    .sort({ updatedAt: -1 });
 };
+
 const getFeedService = async (userId, limit, skip) => {
-  // STEP 1: Fetch only required connection IDs
   const connections = await ConnectionRequest.find({
     $or: [{ senderUserId: userId }, { receiverUserId: userId }],
   })
     .select("senderUserId receiverUserId")
     .lean();
 
-  // STEP 2: Build exclusion set
-  const excludedUserIds = new Set();
+  const excludedUserIds = new Set([userId.toString()]);
 
   connections.forEach((conn) => {
     excludedUserIds.add(conn.senderUserId.toString());
     excludedUserIds.add(conn.receiverUserId.toString());
   });
 
-  // Always exclude self
-  excludedUserIds.add(userId.toString());
-
-  const excludedArray = [...excludedUserIds];
-
-  // STEP 3: Fetch one extra record to detect next page
   const users = await User.find({
-    _id: { $nin: excludedArray },
+    _id: { $nin: [...excludedUserIds] },
     isActive: true,
   })
     .sort({ createdAt: -1 })
@@ -106,16 +92,12 @@ const getFeedService = async (userId, limit, skip) => {
     .select(SENDER_FIELDS)
     .lean();
 
-  // STEP 4: Determine next page
-  let hasNextPage = false;
-
-  if (users.length > limit) {
-    hasNextPage = true;
-    users.pop(); // remove extra record
-  }
+  const hasNextPage = users.length > limit;
+  if (hasNextPage) users.pop();
 
   return { users, hasNextPage };
 };
+
 module.exports = {
   sendConnectionRequest,
   acceptConnectionRequest,
