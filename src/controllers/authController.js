@@ -4,6 +4,7 @@ const {
   forgotPasswordService,
   resetPasswordService,
 } = require("../services/authServices");
+const { ValidationError } = require("../utils/errors");
 
 const userSignUp = async (req, res, next) => {
   try {
@@ -26,10 +27,10 @@ const userLogin = async (req, res, next) => {
     res.cookie("token", token, {
       httpOnly: true,
       sameSite: "strict",
-      // WHY add secure in production?
-      // secure: true = cookie only sent over HTTPS
-      // In dev it would block localhost, so check NODE_ENV
-      secure: process.env.NODE_ENV === "production",
+      // // WHY add secure in production?
+      // // secure: true = cookie only sent over HTTPS
+      // // In dev it would block localhost, so check NODE_ENV
+      // secure: process.env.NODE_ENV === "production",
       maxAge: 24 * 60 * 60 * 1000,
     });
 
@@ -45,7 +46,7 @@ const userLogout = (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
     sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+    // secure: process.env.NODE_ENV === "production",
   });
   res.status(200).json({ success: true, message: "Logout successful" });
 };
@@ -55,10 +56,7 @@ const forgotPassword = async (req, res, next) => {
     const { email } = req.body;
     // WHY validate email presence here not in service?
     // Controller = validate request. Service = business logic.
-    if (!email)
-      throw new (require("../utils/errors").ValidationError)(
-        "Email is required.",
-      );
+    if (!email) throw new ValidationError("Email is required.");
     await forgotPasswordService(email);
     res.status(200).json({
       success: true,

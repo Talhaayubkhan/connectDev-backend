@@ -64,7 +64,7 @@ const loginService = async (email, password) => {
     photoURL: user.photoURL,
     about: user.about,
     age: user.age,
-    skills: user.skills, // WHY fixed: was "skils" typo — frontend was getting undefined
+    skills: user.skills,
     gender: user.gender,
     isActive: user.isActive,
     lastSeen: user.lastSeen,
