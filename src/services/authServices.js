@@ -56,19 +56,26 @@ const loginService = async (email, password) => {
 
   const token = await user.getSignJWT();
 
-  const safeUser = {
-    _id: user._id,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email,
-    photoURL: user.photoURL,
-    about: user.about,
-    age: user.age,
-    skills: user.skills,
-    gender: user.gender,
-    isActive: user.isActive,
-    lastSeen: user.lastSeen,
-  };
+  const {
+    __v,
+    resetPasswordExpires,
+    resetPasswordToken,
+    tokenVersion,
+    ...safeUser
+  } = user.toObject();
+  // const safeUser = {
+  //   _id: user._id,
+  //   firstName: user.firstName,
+  //   lastName: user.lastName,
+  //   email: user.email,
+  //   photoURL: user.photoURL,
+  //   about: user.about,
+  //   age: user.age,
+  //   skills: user.skills,
+  //   gender: user.gender,
+  //   isActive: user.isActive,
+  //   lastSeen: user.lastSeen,
+  // };
 
   return { user: safeUser, token };
 };
