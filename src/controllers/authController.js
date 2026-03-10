@@ -31,6 +31,7 @@ const userLogin = async (req, res, next) => {
       // // secure: true = cookie only sent over HTTPS
       // // In dev it would block localhost, so check NODE_ENV
       // secure: process.env.NODE_ENV === "production",
+      secure: true,
       maxAge: 24 * 60 * 60 * 1000,
     });
 

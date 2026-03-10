@@ -6,7 +6,14 @@ const { ValidationError } = require("../utils/errors");
 
 const getProfile = async (req, res, next) => {
   try {
-    const { email, password, tokenVersion, ...safeUser } = req.user.toObject();
+    const {
+      email,
+      password,
+      tokenVersion,
+      resetPasswordExpires,
+      resetPasswordToken,
+      ...safeUser
+    } = req.user.toObject();
     res.status(200).json({
       success: true,
       message: "Profile fetched successfully.",

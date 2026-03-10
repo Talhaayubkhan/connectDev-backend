@@ -56,13 +56,20 @@ const loginService = async (email, password) => {
 
   const token = await user.getSignJWT();
 
-  const {
-    __v,
-    resetPasswordExpires,
-    resetPasswordToken,
-    tokenVersion,
-    ...safeUser
-  } = user.toObject();
+  // whitelist fields (best practice)
+  const safeUser = {
+    id: user._id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    photoURL: user.photoURL,
+    gender: user.gender,
+    age: user.age,
+    skills: user.skills,
+    about: user.about,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+  };
 
   return { user: safeUser, token };
 };
