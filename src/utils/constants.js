@@ -1,3 +1,5 @@
+const crypto = require("node:crypto");
+
 // services/constants.js
 const SENDER_FIELDS = [
   "firstName",
@@ -14,4 +16,10 @@ const CORS_OPTIONS = {
   credentials: true, // Allow cookies to be sent
 };
 
-module.exports = { SENDER_FIELDS, CORS_OPTIONS };
+const generateChatRoomId = (userId, targetUserId) => {
+  return crypto
+    .createHash("sha256")
+    .update([userId, targetUserId].sort().join("_"))
+    .digest("hex");
+};
+module.exports = { SENDER_FIELDS, CORS_OPTIONS, generateChatRoomId };

@@ -37,9 +37,6 @@
 
 // module.exports = { isAuthCheck };
 
-// ─────────────────────────────────────────────────────────
-// FILE 1: middlewares/auth.js
-// ─────────────────────────────────────────────────────────
 const User = require("../models/userSchema");
 const jwt = require("jsonwebtoken");
 const { AuthError } = require("../utils/errors");
