@@ -5,6 +5,8 @@ const {
   validatePassword,
 } = require("../utils/validation");
 
+const uniqueProfileService = async (userId) => {};
+
 const updateProfileService = async (bodyData, presentUser) => {
   validateProfileData(bodyData);
 

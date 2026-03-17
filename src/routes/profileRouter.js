@@ -5,9 +5,11 @@ const {
   getProfile,
   profileEdit,
   changeProfilePassword,
+  getUniqueProfile,
 } = require("../controllers/profileController");
 
 router.get("/profile/view", isAuthCheck, getProfile);
+router.get("/profile/:targetUserId", isAuthCheck, getUniqueProfile);
 router.patch("/profile/edit", isAuthCheck, profileEdit);
 router.patch("/profile/changePassword", isAuthCheck, changeProfilePassword);
 

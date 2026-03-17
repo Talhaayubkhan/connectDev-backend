@@ -24,6 +24,17 @@ const getProfile = async (req, res, next) => {
   }
 };
 
+const getUniqueProfile = async (req, res, next) => {
+  try {
+    const userId = req.params;
+    console.log(userId);
+
+    res.send("get unique profile");
+  } catch (error) {
+    next(error);
+  }
+};
+
 const profileEdit = async (req, res, next) => {
   try {
     const updatedUser = await updateProfileService(req.body, req.user);
@@ -67,4 +78,9 @@ const changeProfilePassword = async (req, res, next) => {
   }
 };
 
-module.exports = { getProfile, profileEdit, changeProfilePassword };
+module.exports = {
+  getProfile,
+  getUniqueProfile,
+  profileEdit,
+  changeProfilePassword,
+};
