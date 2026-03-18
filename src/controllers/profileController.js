@@ -1,6 +1,7 @@
 const {
   updateProfileService,
   changeUserPassword,
+  uniqueProfileService,
 } = require("../services/profileService");
 const { ValidationError } = require("../utils/errors");
 
@@ -26,15 +27,18 @@ const getProfile = async (req, res, next) => {
 
 const getUniqueProfile = async (req, res, next) => {
   try {
-    const userId = req.params;
-    console.log(userId);
+    const { userId } = req.params;
 
-    res.send("get unique profile");
+    const user = await uniqueProfileService(userId, req.user._id);
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
   } catch (error) {
     next(error);
   }
 };
-
 const profileEdit = async (req, res, next) => {
   try {
     const updatedUser = await updateProfileService(req.body, req.user);

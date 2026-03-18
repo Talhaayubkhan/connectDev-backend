@@ -1,11 +1,51 @@
+const { ObjectId } = require("mongodb");
 const User = require("../models/userSchema");
-const { NotFoundError, ValidationError } = require("../utils/errors");
+const Connection = require("../models/connectionSchema");
+const {
+  NotFoundError,
+  ValidationError,
+  AuthError,
+} = require("../utils/errors");
 const {
   validateProfileData,
   validatePassword,
 } = require("../utils/validation");
+const { SENDER_FIELDS } = require("../utils/constants");
 
-const uniqueProfileService = async (userId) => {};
+const uniqueProfileService = async (userId, currentUserId) => {
+  if (!userId) {
+    throw new ValidationError("User ID is required");
+  }
+  if (!ObjectId.isValid(userId)) {
+    throw new ValidationError("Invalid user ID format");
+  }
+
+  const user = await User.findById(userId).select(SENDER_FIELDS);
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
+
+  // restrict this to only connected one (accepted), means authenticaed show only see that or in accepted state?
+  const isConnected = await Connection.exists({
+    $or: [
+      {
+        senderUserId: currentUserId,
+        receiverUserId: userId,
+        status: "accepted",
+      },
+      {
+        senderUserId: userId,
+        receiverUserId: currentUserId,
+        status: "accepted",
+      },
+    ],
+  });
+
+  if (!isConnected && currentUserId !== userId) {
+    throw new AuthError("Not allowed to view this profile");
+  }
+  return user;
+};
 
 const updateProfileService = async (bodyData, presentUser) => {
   validateProfileData(bodyData);
@@ -46,4 +86,8 @@ const changeUserPassword = async (userId, currentPassword, newPassword) => {
   return true;
 };
 
-module.exports = { updateProfileService, changeUserPassword };
+module.exports = {
+  uniqueProfileService,
+  updateProfileService,
+  changeUserPassword,
+};
