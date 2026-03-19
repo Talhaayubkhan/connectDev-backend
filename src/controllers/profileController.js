@@ -2,6 +2,7 @@ const {
   updateProfileService,
   changeUserPassword,
   uniqueProfileService,
+  deleteAccountService,
 } = require("../services/profileService");
 const { ValidationError } = require("../utils/errors");
 
@@ -89,10 +90,25 @@ const changeProfilePassword = async (req, res, next) => {
     next(error);
   }
 };
+// const deleteAccountController = async (req, res, next) => {
+//   try {
+//     const userId = req.user._id;
+
+//     await deleteAccountService(userId);
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Account deleted successfully",
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
 
 module.exports = {
   getProfile,
   getUniqueProfile,
   profileEdit,
   changeProfilePassword,
+  deleteAccountController,
 };

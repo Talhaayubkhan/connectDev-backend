@@ -4,7 +4,7 @@ const {
   forgotPasswordService,
   resetPasswordService,
 } = require("../services/authServices");
-const { ValidationError } = require("../utils/errors");
+const { ValidationError, NotFoundError } = require("../utils/errors");
 
 const userSignUp = async (req, res, next) => {
   try {

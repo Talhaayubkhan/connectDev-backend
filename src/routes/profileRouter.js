@@ -12,5 +12,6 @@ router.get("/profile/view", isAuthCheck, getProfile);
 router.get("/profile/:userId", isAuthCheck, getUniqueProfile);
 router.patch("/profile/edit", isAuthCheck, profileEdit);
 router.patch("/profile/changePassword", isAuthCheck, changeProfilePassword);
+// router.delete("/profile/me", isAuthCheck, deleteAccountController);
 
 module.exports = router;

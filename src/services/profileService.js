@@ -92,8 +92,21 @@ const changeUserPassword = async (userId, currentPassword, newPassword) => {
   return true;
 };
 
+// const deleteAccountService = async (userId) => {
+//   // 1. Delete user
+//   await User.findByIdAndDelete(userId);
+
+//   // 2. Delete all connections
+//   await Connection.deleteMany({
+//     $or: [{ senderUserId: userId }, { receiverUserId: userId }],
+//   });
+
+//   return true;
+// };
+
 module.exports = {
   uniqueProfileService,
   updateProfileService,
   changeUserPassword,
+  deleteAccountService,
 };

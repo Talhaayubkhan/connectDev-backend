@@ -33,9 +33,7 @@ const {
   forgotPassword,
   resetPassword,
 } = require("../controllers/authController");
-// WHY single import?
-// Before: two separate require() from same file — messy.
-// All auth controller exports come from one file — one import.
+
 const {
   loginLimiter,
   forgotPasswordLimiter,
