@@ -25,11 +25,18 @@ const getProfile = async (req, res, next) => {
   }
 };
 
+// controller/profile.controller.js
+
 const getUniqueProfile = async (req, res, next) => {
   try {
     const { userId } = req.params;
+    const currentUserId = req.user._id.toString();
 
-    const user = await uniqueProfileService(userId, req.user._id);
+    // WHY pass currentUserId explicitly from req.user._id here?
+    // The controller's job is to extract HTTP concerns (req, res) and hand off
+    // clean values to the service. The service should never touch req/res —
+    // that keeps it testable without spinning up an Express server.
+    const user = await uniqueProfileService(userId, currentUserId);
 
     res.status(200).json({
       success: true,
@@ -39,6 +46,7 @@ const getUniqueProfile = async (req, res, next) => {
     next(error);
   }
 };
+
 const profileEdit = async (req, res, next) => {
   try {
     const updatedUser = await updateProfileService(req.body, req.user);

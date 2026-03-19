@@ -4,13 +4,15 @@ const Connection = require("../models/connectionSchema");
 const {
   NotFoundError,
   ValidationError,
-  AuthError,
+  ForbiddenError,
 } = require("../utils/errors");
 const {
   validateProfileData,
   validatePassword,
 } = require("../utils/validation");
 const { SENDER_FIELDS } = require("../utils/constants");
+
+// service/profile.service.js
 
 const uniqueProfileService = async (userId, currentUserId) => {
   if (!userId) {
@@ -20,30 +22,34 @@ const uniqueProfileService = async (userId, currentUserId) => {
     throw new ValidationError("Invalid user ID format");
   }
 
+  const isSelf = currentUserId.toString() === userId.toString();
+
+  if (!isSelf) {
+    const isConnected = await Connection.exists({
+      $or: [
+        {
+          senderUserId: currentUserId,
+          receiverUserId: userId,
+          status: "accepted",
+        },
+        {
+          senderUserId: userId,
+          receiverUserId: currentUserId,
+          status: "accepted",
+        },
+      ],
+    });
+
+    if (!isConnected) {
+      throw new ForbiddenError("You can only view profiles of connections");
+    }
+  }
   const user = await User.findById(userId).select(SENDER_FIELDS);
+
   if (!user) {
     throw new NotFoundError("User not found");
   }
 
-  // restrict this to only connected one (accepted), means authenticaed show only see that or in accepted state?
-  const isConnected = await Connection.exists({
-    $or: [
-      {
-        senderUserId: currentUserId,
-        receiverUserId: userId,
-        status: "accepted",
-      },
-      {
-        senderUserId: userId,
-        receiverUserId: currentUserId,
-        status: "accepted",
-      },
-    ],
-  });
-
-  if (!isConnected && currentUserId !== userId) {
-    throw new AuthError("Not allowed to view this profile");
-  }
   return user;
 };
 
