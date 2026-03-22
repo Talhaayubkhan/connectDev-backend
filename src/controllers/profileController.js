@@ -2,7 +2,6 @@ const {
   updateProfileService,
   changeUserPassword,
   uniqueProfileService,
-  deleteAccountService,
 } = require("../services/profileService");
 const { ValidationError } = require("../utils/errors");
 
@@ -110,5 +109,4 @@ module.exports = {
   getUniqueProfile,
   profileEdit,
   changeProfilePassword,
-  deleteAccountController,
 };

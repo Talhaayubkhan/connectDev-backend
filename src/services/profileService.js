@@ -108,5 +108,4 @@ module.exports = {
   uniqueProfileService,
   updateProfileService,
   changeUserPassword,
-  deleteAccountService,
 };
