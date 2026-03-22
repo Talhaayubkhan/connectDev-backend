@@ -15,11 +15,8 @@ const { SENDER_FIELDS } = require("../utils/constants");
 // service/profile.service.js
 
 const uniqueProfileService = async (userId, currentUserId) => {
-  if (!userId) {
-    throw new ValidationError("User ID is required");
-  }
   if (!ObjectId.isValid(userId)) {
-    throw new ValidationError("Invalid user ID format");
+    throw new ValidationError("Invalid user ID");
   }
 
   const isSelf = currentUserId.toString() === userId.toString();
