@@ -6,7 +6,8 @@ const {
   ConflictError,
 } = require("../utils/errors");
 const { validateSignupData, validatePassword } = require("../utils/validation");
-const { sendEmail, buildResetEmailHTML } = require("../utils/email/sendEmail");
+const sendEmail = require("../utils/email/sendEmail");
+const resetPasswordTemplate = require("../utils/email/resetPasswordTemplate");
 
 const signupService = async (userData) => {
   const sanitizedData = {
@@ -100,11 +101,11 @@ const forgotPasswordService = async (email) => {
   // WHY query param not path param?
   // Frontend uses useSearchParams() — reads ?token=...
   // Path param (/reset-password/:token) would cause 404
-  const resetURL = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+  const resetURL = `${process.env.FRONTEND_URL}/auth/reset-password?token=${token}`;
 
   await sendEmail(user.email, "Reset your password", {
-    text: `Reset your password: ${resetURL}\n\nExpires in 15 minutes.`,
-    html: buildResetEmailHTML(resetURL),
+    text: `Reset your password: ${resetURL}`,
+    html: resetPasswordTemplate(resetURL),
   });
 };
 

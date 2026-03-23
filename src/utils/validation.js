@@ -104,7 +104,7 @@ const validateProfileData = (data) => {
   return true;
 };
 
-const validatePassword = (password, confirmPassword) => {
+const validatePassword = (password, newPassword, confirmPassword) => {
   if (
     !validator.isStrongPassword(password, {
       minLength: 8,
@@ -116,7 +116,7 @@ const validatePassword = (password, confirmPassword) => {
   ) {
     throw new ValidationError("Password too weak");
   }
-  if (!confirmPassword || password !== confirmPassword) {
+  if (!confirmPassword || newPassword !== confirmPassword) {
     throw new ValidationError("Passwords do not match");
   }
 
