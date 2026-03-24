@@ -22,4 +22,5 @@ const generateChatRoomId = (userId, targetUserId) => {
     .update([userId, targetUserId].sort().join("_"))
     .digest("hex");
 };
+
 module.exports = { SENDER_FIELDS, CORS_OPTIONS, generateChatRoomId };
