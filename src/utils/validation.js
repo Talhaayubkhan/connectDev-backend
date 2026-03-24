@@ -116,7 +116,7 @@ const validatePassword = (password, newPassword, confirmPassword) => {
   ) {
     throw new ValidationError("Password too weak");
   }
-  if (!confirmPassword || newPassword !== confirmPassword) {
+  if (!newPassword && confirmPassword !== newPassword) {
     throw new ValidationError("Passwords do not match");
   }
 
