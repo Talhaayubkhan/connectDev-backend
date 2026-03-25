@@ -10,8 +10,6 @@ const initSocket = (server) => {
       // console.log(roomId);
 
       socket.join(roomId);
-
-      console.log(`${socket.user.firstName} joined ${roomId}`);
     });
 
     socket.on("sendMessage", ({ userId, targetUserId, text }) => {
