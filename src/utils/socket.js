@@ -5,22 +5,9 @@ const initSocket = (server) => {
   const io = socket(server, { cors: CORS_OPTIONS });
 
   io.on("connection", (socket) => {
-    socket.on("joinChat", ({ userId, targetUserId }) => {
-      const roomId = generateChatRoomId(userId, targetUserId);
-      // console.log(roomId);
+    socket.on("joinChat", () => {});
 
-      socket.join(roomId);
-    });
-
-    socket.on("sendMessage", ({ userId, targetUserId, text }) => {
-      const roomId = generateChatRoomId(userId, targetUserId);
-
-      io.to(roomId).emit("messageReceived", {
-        senderId: userId,
-        firstName: socket.user.firstName,
-        text,
-      });
-    });
+    socket.on("sendMessage", () => {});
   });
   return io;
 };
