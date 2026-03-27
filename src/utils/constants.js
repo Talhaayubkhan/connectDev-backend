@@ -12,7 +12,8 @@ const SENDER_FIELDS = [
 ];
 
 const CORS_OPTIONS = {
-  origin: process.env.FRONTEND_URL, // Frontend URL
+  // origin: process.env.FRONTEND_URL, // Frontend URL
+  origin: "http://localhost:5173", // or your frontend port
   credentials: true, // Allow cookies to be sent
 };
 

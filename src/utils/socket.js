@@ -1,21 +1,42 @@
-const socket = require("socket.io");
+// const socket = require("socket.io");
+// const { CORS_OPTIONS } = require("./constants");
+
+// const initSocket = (server) => {
+//   const io = socket(server, { cors: CORS_OPTIONS });
+//   io.on("connection", (socket) => {
+//     socket.on("joinChat", ({ IdUser, userId }) => {
+//       console.log(IdUser, userId);
+
+//       const roomId = [IdUser, userId].sort().join("_");
+
+//       console.log("room joining: " + roomId);
+//       socket.join(roomId);
+//     });
+//   });
+//   return io;
+// };
+
+// module.exports = { initSocket };
+
+const socketIO = require("socket.io");
 const { CORS_OPTIONS } = require("./constants");
 
 const initSocket = (server) => {
-  const io = socket(server, { cors: CORS_OPTIONS });
+  const io = socketIO(server, { cors: CORS_OPTIONS });
 
-  io.on("connection", (socket) => {
-    console.log("Client connected:", socket.id);
+  io.on("connection", (clientSocket) => {
+    clientSocket.on("joinChat", ({ IdUser, userId }) => {
+      const currentUserId = IdUser;
+      const chatPartnerId = userId;
 
-    socket.on("joinChat", ({ userId, targetUserId }) => {
-      const roomId = [userId, targetUserId].sort().join("_");
+      const chatRoomId = [currentUserId, chatPartnerId].sort().join("_");
 
-      console.log("room joining:", roomId);
-      socket.join(roomId);
+      console.log("room joining: " + chatRoomId);
+
+      clientSocket.join(chatRoomId);
     });
-
-    socket.on("sendMessage", () => {});
   });
+
   return io;
 };
 
