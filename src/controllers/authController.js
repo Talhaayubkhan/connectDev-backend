@@ -25,7 +25,7 @@ const userLogin = async (req, res, next) => {
     const { user, token } = await loginService(email, password);
 
     res.cookie("token", token, {
-      httpOnly: true,
+      // httpOnly: true,
       sameSite: "strict",
       // // WHY add secure in production?
       // // secure: true = cookie only sent over HTTPS
