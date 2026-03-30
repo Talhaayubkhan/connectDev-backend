@@ -11,9 +11,9 @@ const { isAuthCheck } = require("../middlewares/auth");
 router.get("/chats", isAuthCheck, getUserChats);
 
 // Get or create chat with a user
-router.get("/user/:targetUserId", isAuthCheck, getOrCreateChat);
+router.get("/chats/user/:targetUserId", isAuthCheck, getOrCreateChat);
 
 // Get messages of a chat (with pagination)
-router.get("/:chatId/messages", isAuthCheck, getMessages);
+router.get("/chats/:chatId/messages", isAuthCheck, getMessages);
 
 module.exports = router;

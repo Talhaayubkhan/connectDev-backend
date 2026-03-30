@@ -24,26 +24,43 @@ const getUserChatsService = async (userId) => {
     };
   });
 };
-
 const getOrCreateChatService = async (userId, targetUserId) => {
   let chat = await Chat.findOne({
     participants: { $all: [userId, targetUserId] },
   })
     .populate("participants", "firstName lastName photoURL")
-    .populate("lastMessage");
+    .populate("lastMessage", "text sender createdAt");
 
+  // If chat does not exist → create
   if (!chat) {
     chat = await Chat.create({
       participants: [userId, targetUserId],
     });
+
+    // populate after creation
+    chat = await chat.populate("participants", "firstName lastName photoURL");
   }
 
-  // Load last 20 messages
+  // Extract other user (NO map here)
+  const otherUser = chat.participants.find(
+    (p) => p._id.toString() !== userId.toString(),
+  );
+
+  // Load messages
   const messages = await Message.find({ chat: chat._id })
     .sort({ createdAt: -1 })
     .limit(20);
 
-  return { chat, messages };
+  // Transform response
+  return {
+    chat: {
+      _id: chat._id,
+      otherUser,
+      lastMessage: chat.lastMessage,
+      updatedAt: chat.updatedAt,
+    },
+    messages,
+  };
 };
 
 const getMessagesService = async (chatId, page, limit) => {
