@@ -1,13 +1,28 @@
 const Chat = require("../models/chatSchema");
 const Message = require("../models/messageSchema");
 
+const CHAT_USER_FIELDS = "firstName lastName photoURL";
+
 const getUserChatsService = async (userId) => {
-  return await Chat.find({
+  const chats = await Chat.find({
     participants: userId,
   })
-    .populate("participants", "firstName lastName photoURL")
-    .populate("lastMessage")
+    .populate("participants", CHAT_USER_FIELDS)
+    .populate("lastMessage", "text sender createdAt")
     .sort({ updatedAt: -1 });
+
+  return chats.map((chat) => {
+    const otherUser = chat.participants.find(
+      (p) => p._id.toString() !== userId.toString(),
+    );
+
+    return {
+      _id: chat._id,
+      otherUser,
+      lastMessage: chat.lastMessage,
+      updatedAt: chat.updatedAt,
+    };
+  });
 };
 
 const getOrCreateChatService = async (userId, targetUserId) => {

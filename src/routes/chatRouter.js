@@ -5,14 +5,15 @@ const {
   getOrCreateChat,
   getMessages,
 } = require("../controllers/chatController");
+const { isAuthCheck } = require("../middlewares/auth");
 
 // Get all chats (sidebar)
-router.get("/chats", getUserChats);
+router.get("/chats", isAuthCheck, getUserChats);
 
 // Get or create chat with a user
-router.get("/user/:targetUserId", getOrCreateChat);
+router.get("/user/:targetUserId", isAuthCheck, getOrCreateChat);
 
 // Get messages of a chat (with pagination)
-router.get("/:chatId/messages", getMessages);
+router.get("/:chatId/messages", isAuthCheck, getMessages);
 
 module.exports = router;

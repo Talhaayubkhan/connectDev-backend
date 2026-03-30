@@ -13,6 +13,7 @@ const getUserChats = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
+      count: chats.length,
       data: chats,
     });
   } catch (error) {
