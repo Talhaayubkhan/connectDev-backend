@@ -1,9 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const { getUserChats } = require("../controllers/chatController");
-const { isAuthCheck } = require("../middlewares/auth");
+const {
+  getUserChats,
+  getOrCreateChat,
+  getMessages,
+} = require("../controllers/chatController");
 
-router.get("/chat", isAuthCheck, getUserChats);
-// router.get("/chat-messages/:chatId", isAuthCheck, getChatMessages);
+// Get all chats (sidebar)
+router.get("/chats", getUserChats);
+
+// Get or create chat with a user
+router.get("/user/:targetUserId", getOrCreateChat);
+
+// Get messages of a chat (with pagination)
+router.get("/:chatId/messages", getMessages);
 
 module.exports = router;
