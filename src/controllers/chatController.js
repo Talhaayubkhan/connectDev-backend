@@ -45,7 +45,7 @@ const getMessages = async (req, res, next) => {
     const { chatId } = req.params;
     const { page = 1, limit = 20 } = req.query;
 
-    const messages = await getMessageService(chatId, page, limit);
+    const messages = await getMessagesService(chatId, page, limit);
 
     res.status(200).json({
       success: true,
