@@ -26,8 +26,8 @@ const getUserChats = async (req, res, next) => {
 // 2. Open chat (create if not exists)
 const getOrCreateChat = async (req, res, next) => {
   try {
-    const userId = req.user._id;
-    const { targetUserId } = req.params;
+    const userId = req.user._id; // YOU
+    const { targetUserId } = req.params; // the OTHER person
 
     const result = await getOrCreateChatService(userId, targetUserId);
 
