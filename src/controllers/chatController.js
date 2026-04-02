@@ -1,10 +1,12 @@
+// controllers/chatController.js
+
 const {
   getUserChatsService,
   getOrCreateChatService,
   getMessagesService,
 } = require("../services/chatServices");
 
-// 1. Get all chats
+// 1. Sidebar chats
 const getUserChats = async (req, res, next) => {
   try {
     const userId = req.user._id;
@@ -21,7 +23,7 @@ const getUserChats = async (req, res, next) => {
   }
 };
 
-// 2. Get or create chat
+// 2. Open chat (create if not exists)
 const getOrCreateChat = async (req, res, next) => {
   try {
     const userId = req.user._id;
@@ -31,15 +33,14 @@ const getOrCreateChat = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      count: result.messages.length,
-      data: result,
+      data: result, // { chat, messages }
     });
   } catch (error) {
     next(error);
   }
 };
 
-// 3. Get messages
+// 3. Pagination
 const getMessages = async (req, res, next) => {
   try {
     const { chatId } = req.params;
