@@ -9,10 +9,15 @@ const getUserChatsService = async (userId) => {
     participants: userId,
   })
     .populate("participants", CHAT_USER_FIELDS)
-    .populate("lastMessage", "text sender createdAt")
+    .populate({
+      path: "lastMessage",
+      select: "text sender createdAt",
+      populate: {
+        path: "sender",
+        select: "firstName lastName photoURL",
+      },
+    })
     .sort({ updatedAt: -1 });
-
-  console.log("sidebar chat users", chats);
 
   return chats.map((chat) => {
     const otherUser = chat.participants.find(
