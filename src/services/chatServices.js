@@ -1,5 +1,3 @@
-// services/chatServices.js
-
 const Chat = require("../models/chatSchema");
 const Message = require("../models/messageSchema");
 
@@ -13,6 +11,8 @@ const getUserChatsService = async (userId) => {
     .populate("participants", CHAT_USER_FIELDS)
     .populate("lastMessage", "text sender createdAt")
     .sort({ updatedAt: -1 });
+
+  console.log("sidebar chat users", chats);
 
   return chats.map((chat) => {
     const otherUser = chat.participants.find(
