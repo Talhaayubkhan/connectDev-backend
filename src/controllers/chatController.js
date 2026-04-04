@@ -1,4 +1,67 @@
-// controllers/chatController.js
+// // controllers/chatController.js
+
+// const {
+//   getUserChatsService,
+//   getOrCreateChatService,
+//   getMessagesService,
+// } = require("../services/chatServices");
+
+// // 1. Sidebar chats
+// const getUserChats = async (req, res, next) => {
+//   try {
+//     const userId = req.user._id;
+
+//     const chats = await getUserChatsService(userId);
+
+//     res.status(200).json({
+//       success: true,
+//       count: chats.length,
+//       data: chats,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+// // 2. Open chat (create if not exists)
+// const getOrCreateChat = async (req, res, next) => {
+//   try {
+//     const userId = req.user._id; // YOU
+//     const { targetUserId } = req.params; // the OTHER person
+
+//     const result = await getOrCreateChatService(userId, targetUserId);
+
+//     res.status(200).json({
+//       success: true,
+//       data: result, // { chat, messages }
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+// // 3. Pagination
+// const getMessages = async (req, res, next) => {
+//   try {
+//     const { chatId } = req.params;
+//     const { page = 1, limit = 20 } = req.query;
+
+//     const messages = await getMessagesService(chatId, page, limit);
+
+//     res.status(200).json({
+//       success: true,
+//       data: messages,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+// module.exports = {
+//   getUserChats,
+//   getOrCreateChat,
+//   getMessages,
+// };
 
 const {
   getUserChatsService,
@@ -6,11 +69,13 @@ const {
   getMessagesService,
 } = require("../services/chatServices");
 
-// 1. Sidebar chats
+// ─────────────────────────────────────────────
+// GET /chats
+// Returns sidebar chat list for logged-in user
+// ─────────────────────────────────────────────
 const getUserChats = async (req, res, next) => {
   try {
     const userId = req.user._id;
-
     const chats = await getUserChatsService(userId);
 
     res.status(200).json({
@@ -23,11 +88,23 @@ const getUserChats = async (req, res, next) => {
   }
 };
 
-// 2. Open chat (create if not exists)
+// ─────────────────────────────────────────────
+// GET /chats/user/:targetUserId
+// Opens (or creates) a chat with the target user
+// Returns: { chat, messages }
+// ─────────────────────────────────────────────
 const getOrCreateChat = async (req, res, next) => {
   try {
-    const userId = req.user._id; // YOU
-    const { targetUserId } = req.params; // the OTHER person
+    const userId = req.user._id;
+    const { targetUserId } = req.params;
+
+    // FIX: prevent self-chat (user opening a chat with themselves)
+    if (userId.toString() === targetUserId.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot create a chat with yourself",
+      });
+    }
 
     const result = await getOrCreateChatService(userId, targetUserId);
 
@@ -40,19 +117,27 @@ const getOrCreateChat = async (req, res, next) => {
   }
 };
 
-// 3. Pagination
+// ─────────────────────────────────────────────
+// GET /chats/:chatId/messages?page=1&limit=20
+// Paginated message history — user must be participant
+// ─────────────────────────────────────────────
 const getMessages = async (req, res, next) => {
   try {
     const { chatId } = req.params;
     const { page = 1, limit = 20 } = req.query;
+    const userId = req.user._id; // FIX: pass userId for authorization check in service
 
-    const messages = await getMessagesService(chatId, page, limit);
+    const result = await getMessagesService(chatId, userId, page, limit);
 
     res.status(200).json({
       success: true,
-      data: messages,
+      data: result, // { messages, pagination: { page, limit, total, hasMore } }
     });
   } catch (error) {
+    // Forward 403 from service as proper HTTP response
+    if (error.statusCode === 403) {
+      return res.status(403).json({ success: false, message: error.message });
+    }
     next(error);
   }
 };
