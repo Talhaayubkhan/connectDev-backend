@@ -1,97 +1,9 @@
-// const Chat = require("../models/chatSchema");
-// const Message = require("../models/messageSchema");
-
-// const CHAT_USER_FIELDS = "firstName lastName photoURL";
-
-// // Sidebar chats
-// const getUserChatsService = async (userId) => {
-//   const chats = await Chat.find({
-//     participants: userId,
-//   })
-//     .populate("participants", CHAT_USER_FIELDS)
-//     .populate({
-//       path: "lastMessage",
-//       select: "text sender createdAt",
-//       populate: {
-//         path: "sender",
-//         select: "firstName lastName photoURL",
-//       },
-//     })
-//     .sort({ updatedAt: -1 });
-
-//   return chats.map((chat) => {
-//     const otherUser = chat.participants.find(
-//       (p) => p._id.toString() !== userId.toString(),
-//     );
-
-//     return {
-//       _id: chat._id,
-//       otherUser,
-//       lastMessage: chat.lastMessage,
-//       updatedAt: chat.updatedAt,
-//     };
-//   });
-// };
-
-// // Open chat
-// const getOrCreateChatService = async (userId, targetUserId) => {
-//   let chat = await Chat.findOne({
-//     participants: { $all: [userId, targetUserId] },
-//   })
-//     .populate("participants", CHAT_USER_FIELDS)
-//     .populate("lastMessage");
-
-//   if (!chat) {
-//     chat = await Chat.create({
-//       participants: [userId, targetUserId],
-//     });
-
-//     chat = await chat.populate("participants", CHAT_USER_FIELDS);
-//   }
-
-//   const otherUser = chat.participants.find(
-//     (p) => p._id.toString() !== userId.toString(),
-//   );
-
-//   // Fetch latest 20 messages
-//   const messages = await Message.find({ chat: chat._id })
-//     .sort({ createdAt: -1 })
-//     .limit(20);
-
-//   return {
-//     chat: {
-//       _id: chat._id,
-//       otherUser,
-//       updatedAt: chat.updatedAt,
-//     },
-//     messages,
-//   };
-// };
-
-// // Pagination
-// const getMessagesService = async (chatId, page, limit) => {
-//   const skip = (page - 1) * limit;
-
-//   return await Message.find({ chat: chatId })
-//     .sort({ createdAt: -1 })
-//     .skip(skip)
-//     .limit(limit);
-// };
-
-// module.exports = {
-//   getUserChatsService,
-//   getOrCreateChatService,
-//   getMessagesService,
-// };
-
 const Chat = require("../models/chatSchema");
 const Message = require("../models/messageSchema");
 
 const CHAT_USER_FIELDS = "firstName lastName photoURL";
 
-// ─────────────────────────────────────────────
 // 1. Sidebar: all chats for a user
-// ─────────────────────────────────────────────
 const getUserChatsService = async (userId) => {
   const chats = await Chat.find({ participants: userId })
     .populate("participants", CHAT_USER_FIELDS)
@@ -124,9 +36,7 @@ const getUserChatsService = async (userId) => {
   });
 };
 
-// ─────────────────────────────────────────────
 // 2. Open or create a chat between two users
-// ─────────────────────────────────────────────
 const getOrCreateChatService = async (userId, targetUserId) => {
   // Find existing chat where BOTH users are participants
   let chat = await Chat.findOne({
@@ -179,10 +89,8 @@ const getOrCreateChatService = async (userId, targetUserId) => {
   };
 };
 
-// ─────────────────────────────────────────────
 // 3. Paginated messages for a chat
 //    SECURITY: verifies userId is a participant
-// ─────────────────────────────────────────────
 const getMessagesService = async (chatId, userId, page, limit) => {
   // FIX: authorization check — user must be a participant in this chat
   const chat = await Chat.findOne({
@@ -222,10 +130,8 @@ const getMessagesService = async (chatId, userId, page, limit) => {
   };
 };
 
-// ─────────────────────────────────────────────
 // 4. Save a new message + update chat.lastMessage
 //    Called from socket handler after validating sender
-// ─────────────────────────────────────────────
 const saveMessageService = async (chatId, senderId, text) => {
   // Verify sender is a participant before saving
   const chat = await Chat.findOne({
