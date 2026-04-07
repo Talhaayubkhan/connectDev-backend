@@ -1,3 +1,4 @@
+// models/chatSchema.js
 const mongoose = require("mongoose");
 
 const chatSchema = new mongoose.Schema(
@@ -17,20 +18,21 @@ const chatSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// FIX: unique index on sorted participants prevents:
-//  1. Duplicate chats between same two users (race condition on simultaneous create)
-//  2. Fast lookup by participant pair
-// IMPORTANT: always sort participants before saving → [a,b] and [b,a] are same chat
-chatSchema.index({ participants: 1 });
+// 🔴 ALWAYS ensure sorted participants BEFORE save
+chatSchema.pre("save", function (next) {
+  if (this.participants.length === 2) {
+    this.participants.sort();
+  }
+  next();
+});
 
-// Compound unique: we sort participants before insert so order is deterministic
-// This index prevents double-create race condition
+// Prevent duplicate chats
 chatSchema.index(
   { "participants.0": 1, "participants.1": 1 },
-  { unique: true, sparse: true },
+  { unique: true },
 );
 
-// Fast lookup: all chats for a user (sidebar query)
+// Fast sidebar query
 chatSchema.index({ participants: 1, updatedAt: -1 });
 
 const Chat = mongoose.model("Chat", chatSchema);

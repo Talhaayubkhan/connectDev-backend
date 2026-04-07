@@ -1,4 +1,7 @@
 const crypto = require("node:crypto");
+const mongoose = require("mongoose");
+
+const { ValidationError } = require("./errors");
 
 // services/constants.js
 const SENDER_FIELDS = [
@@ -24,4 +27,18 @@ const generateChatRoomId = (userId, targetUserId) => {
     .digest("hex");
 };
 
-module.exports = { SENDER_FIELDS, CORS_OPTIONS, generateChatRoomId };
+// COMMON HELPERS
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+const requireObjectId = (id, fieldName = "ID") => {
+  if (!id || !isValidObjectId(id)) {
+    throw new ValidationError(`Invalid ${fieldName}`);
+  }
+};
+
+module.exports = {
+  SENDER_FIELDS,
+  CORS_OPTIONS,
+  generateChatRoomId,
+  isValidObjectId,
+  requireObjectId,
+};

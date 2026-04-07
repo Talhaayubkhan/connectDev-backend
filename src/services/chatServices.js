@@ -14,7 +14,7 @@ const getUserChatsService = async (userId) => {
       select: "text sender createdAt",
       populate: {
         path: "sender",
-        select: "firstName lastName photoURL",
+        select: CHAT_USER_FIELDS,
       },
     })
     .sort({ updatedAt: -1 });
@@ -27,7 +27,7 @@ const getUserChatsService = async (userId) => {
     return {
       _id: chat._id,
       otherUser,
-      lastMessage: chat.lastMessage,
+      lastMessage: chat.lastMessage || null,
       updatedAt: chat.updatedAt,
     };
   });
@@ -35,28 +35,36 @@ const getUserChatsService = async (userId) => {
 
 // Open chat
 const getOrCreateChatService = async (userId, targetUserId) => {
+  const participants = [userId, targetUserId].sort();
+
   let chat = await Chat.findOne({
-    participants: { $all: [userId, targetUserId] },
+    participants: { $all: participants },
   })
     .populate("participants", CHAT_USER_FIELDS)
     .populate("lastMessage");
 
   if (!chat) {
-    chat = await Chat.create({
-      participants: [userId, targetUserId],
-    });
-
-    chat = await chat.populate("participants", CHAT_USER_FIELDS);
+    try {
+      chat = await Chat.create({ participants });
+      chat = await chat.populate("participants", CHAT_USER_FIELDS);
+    } catch (error) {
+      // Handle race condition (duplicate creation)
+      chat = await Chat.findOne({
+        participants: { $all: participants },
+      }).populate("participants", CHAT_USER_FIELDS);
+    }
   }
 
   const otherUser = chat.participants.find(
     (p) => p._id.toString() !== userId.toString(),
   );
 
-  // Fetch latest 20 messages
-  const messages = await Message.find({ chat: chat._id })
+  // Latest 20 messages → then reverse for UI
+  let messages = await Message.find({ chat: chat._id })
     .sort({ createdAt: -1 })
     .limit(20);
+
+  messages = messages.reverse();
 
   return {
     chat: {

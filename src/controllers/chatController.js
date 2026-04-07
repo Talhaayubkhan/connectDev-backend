@@ -1,15 +1,23 @@
-// controllers/chatController.js
-
 const {
   getUserChatsService,
   getOrCreateChatService,
   getMessagesService,
 } = require("../services/chatServices");
 
-// 1. Sidebar chats
+const {
+  requireObjectId,
+  validateChatAccess,
+  validateMessagePagination,
+} = require("../utils/validation");
+
+// 1. GET USER CHATS (SIDEBAR)
+
 const getUserChats = async (req, res, next) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user?._id;
+
+    // validate user
+    requireObjectId(userId, "User ID");
 
     const chats = await getUserChatsService(userId);
 
@@ -23,28 +31,39 @@ const getUserChats = async (req, res, next) => {
   }
 };
 
-// 2. Open chat (create if not exists)
+// 2. OPEN / CREATE CHAT
+
 const getOrCreateChat = async (req, res, next) => {
   try {
-    const userId = req.user._id; // YOU
-    const { targetUserId } = req.params; // the OTHER person
+    const userId = req.user?._id;
+    const { targetUserId } = req.params;
+
+    // validate both users
+    validateChatAccess(userId, targetUserId);
 
     const result = await getOrCreateChatService(userId, targetUserId);
 
     res.status(200).json({
       success: true,
-      data: result, // { chat, messages }
+      data: result,
     });
   } catch (error) {
     next(error);
   }
 };
 
-// 3. Pagination
+// 3. GET MESSAGES (PAGINATION)
+
 const getMessages = async (req, res, next) => {
   try {
     const { chatId } = req.params;
-    const { page = 1, limit = 20 } = req.query;
+
+    // validate + normalize pagination
+    const { page, limit } = validateMessagePagination(
+      chatId,
+      req.query.page,
+      req.query.limit,
+    );
 
     const messages = await getMessagesService(chatId, page, limit);
 

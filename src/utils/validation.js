@@ -1,132 +1,9 @@
-// const validator = require("validator");
-// const { ValidationError } = require("./errors");
-
-// const validateSignupData = (data) => {
-//   let { firstName, lastName, email, password, confirmPassword } = data;
-
-//   firstName = firstName?.trim();
-//   lastName = lastName?.trim();
-//   email = email?.trim().toLowerCase();
-//   password = password?.trim();
-//   confirmPassword = confirmPassword?.trim();
-
-//   if (!firstName || !validator.isLength(firstName, { min: 2, max: 50 })) {
-//     throw new ValidationError("First name must be between 2 and 50 characters");
-//   }
-
-//   if (lastName && !validator.isLength(lastName, { min: 2, max: 50 })) {
-//     throw new ValidationError("Last name must be between 2 and 50 characters");
-//   }
-
-//   if (!email || !validator.isEmail(email)) {
-//     throw new ValidationError("Please provide a valid email");
-//   }
-
-//   if (
-//     !password ||
-//     !validator.isStrongPassword(password, {
-//       minLength: 8,
-//       minLowercase: 1,
-//       minUppercase: 1,
-//       minNumbers: 1,
-//       minSymbols: 0,
-//     })
-//   ) {
-//     throw new ValidationError(
-//       "Password must be at least 8 characters with uppercase and number",
-//     );
-//   }
-
-//   if (!confirmPassword || password !== confirmPassword) {
-//     throw new ValidationError("Passwords do not match");
-//   }
-
-//   return true;
-// };
-
-// const validateProfileData = (data) => {
-//   const ALLOWED_FIELDS = [
-//     "firstName",
-//     "lastName",
-//     "gender",
-//     "age",
-//     "about",
-//     "skills",
-//     "photoURL",
-//   ];
-
-//   const isEditAllowed = Object.keys(data).every((field) =>
-//     ALLOWED_FIELDS.includes(field),
-//   );
-
-//   if (!isEditAllowed) {
-//     throw new ValidationError("Some fields are not allowed to update");
-//   }
-
-//   if (
-//     data.firstName &&
-//     !validator.isLength(data.firstName.trim(), { min: 2, max: 50 })
-//   ) {
-//     throw new ValidationError("First name must be between 2 and 50 characters");
-//   }
-
-//   if (
-//     data.lastName &&
-//     !validator.isLength(data.lastName.trim(), { min: 2, max: 50 })
-//   ) {
-//     throw new ValidationError("Last name must be between 2 and 50 characters");
-//   }
-
-//   if (data.photoURL && !validator.isURL(data.photoURL)) {
-//     throw new ValidationError("Invalid photo URL");
-//   }
-
-//   if (data.about && !validator.isLength(data.about, { min: 25, max: 300 })) {
-//     throw new ValidationError("About must be between 25 and 300 characters");
-//   }
-
-//   if (data.skills !== undefined) {
-//     if (!Array.isArray(data.skills)) {
-//       throw new ValidationError("Skills must be an array");
-//     }
-//     if (data.skills.length > 20) {
-//       throw new ValidationError("Skills cannot exceed 20 items");
-//     }
-//   }
-
-//   if (
-//     data.age &&
-//     !validator.isInt(data.age.toString(), { min: 18, max: 100 })
-//   ) {
-//     throw new ValidationError("Age must be between 18 and 100");
-//   }
-
-//   return true;
-// };
-
-// const validatePassword = (password, newPassword, confirmPassword) => {
-//   if (
-//     !validator.isStrongPassword(password, {
-//       minLength: 8,
-//       minLowercase: 1,
-//       minUppercase: 1,
-//       minNumbers: 1,
-//       minSymbols: 0,
-//     })
-//   ) {
-//     throw new ValidationError("Password too weak");
-//   }
-//   if (!newPassword && confirmPassword !== newPassword) {
-//     throw new ValidationError("Passwords do not match");
-//   }
-
-//   return true;
-// };
-
-// module.exports = { validateSignupData, validateProfileData, validatePassword };
-
+// utils/validators.js
 const validator = require("validator");
 const { ValidationError } = require("./errors");
+const { isValidObjectId, requireObjectId } = require("./constants");
+
+// PASSWORD RULES
 
 const PASSWORD_RULES = {
   minLength: 8,
@@ -135,6 +12,8 @@ const PASSWORD_RULES = {
   minNumbers: 1,
   minSymbols: 0,
 };
+
+// AUTH VALIDATIONS
 
 const validateSignupData = (data) => {
   let { firstName, lastName, email, password, confirmPassword } = data;
@@ -171,6 +50,8 @@ const validateSignupData = (data) => {
 
   return { firstName, lastName, email, password };
 };
+
+// PROFILE VALIDATION
 
 const validateProfileData = (data) => {
   const ALLOWED_FIELDS = [
@@ -211,6 +92,8 @@ const validateProfileData = (data) => {
   return data;
 };
 
+// PASSWORD CHANGE
+
 const validatePassword = (oldPassword, newPassword, confirmPassword) => {
   if (!validator.isStrongPassword(newPassword, PASSWORD_RULES)) {
     throw new ValidationError("Weak password");
@@ -223,8 +106,63 @@ const validatePassword = (oldPassword, newPassword, confirmPassword) => {
   return true;
 };
 
+// CHAT VALIDATIONS (NEW)
+
+// Validate opening chat
+const validateChatAccess = (userId, targetUserId) => {
+  requireObjectId(userId, "User ID");
+  requireObjectId(targetUserId, "Target User ID");
+
+  if (userId.toString() === targetUserId.toString()) {
+    throw new ValidationError("Cannot chat with yourself");
+  }
+};
+
+// Validate messages pagination
+const validateMessagePagination = (chatId, page, limit) => {
+  requireObjectId(chatId, "Chat ID");
+
+  page = parseInt(page);
+  limit = parseInt(limit);
+
+  if (isNaN(page) || page < 1) {
+    throw new ValidationError("Invalid page");
+  }
+
+  if (isNaN(limit) || limit < 1 || limit > 50) {
+    throw new ValidationError("Invalid limit");
+  }
+
+  return { page, limit };
+};
+
+// Validate sending message
+const validateSendMessage = (chatId, text) => {
+  requireObjectId(chatId, "Chat ID");
+
+  if (!text || !text.trim()) {
+    throw new ValidationError("Message cannot be empty");
+  }
+
+  if (!validator.isLength(text, { min: 1, max: 1000 })) {
+    throw new ValidationError("Message must be 1–1000 characters");
+  }
+
+  return text.trim();
+};
+
 module.exports = {
+  // common
+  isValidObjectId,
+  requireObjectId,
+
+  // auth
   validateSignupData,
   validateProfileData,
   validatePassword,
+
+  // chat
+  validateChatAccess,
+  validateMessagePagination,
+  validateSendMessage,
 };
