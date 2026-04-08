@@ -1,30 +1,17 @@
 const validator = require("validator");
+const mongoose = require("mongoose");
 const { ValidationError } = require("./errors");
-const { isValidObjectId, requireObjectId } = require("./constants");
+const { COMMON_PASSWORDS, PASSWORD_RULES } = require("./constants");
 
-// PASSWORD RULES
-const PASSWORD_RULES = {
-  minLength: 8,
-  minLowercase: 1,
-  minUppercase: 1,
-  minNumbers: 1,
-  minSymbols: 1, // UPDATED: Changed from 0 to 1 - require special character
+// COMMON HELPERS
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+const requireObjectId = (id, fieldName = "ID") => {
+  if (!id || !isValidObjectId(id)) {
+    throw new ValidationError(`Invalid ${fieldName}`);
+  }
 };
 
-// Common password blacklist
-const COMMON_PASSWORDS = new Set([
-  "Password123!",
-  "Admin123!",
-  "Qwerty123!",
-  "Welcome123!",
-  "Pass@123",
-  "Test@1234",
-  "User@123",
-  "Login123!",
-]);
-
-// ========== AUTH VALIDATIONS ==========
-
+// AUTH VALIDATIONS
 const validateSignupData = (data) => {
   let { firstName, lastName, email, password, confirmPassword } = data;
 

@@ -3,19 +3,21 @@ const {
   getAcceptedReceivedRequests,
   getFeedService,
 } = require("../services/connectionRequestService");
+const { NotFoundError } = require("../utils/errors");
 
 const showAllReceivedRequests = async (req, res, next) => {
   try {
     const connections = await getPendingReceivedRequests(req.user._id);
 
-    // WHY return [] not throw NotFoundError?
-    // Empty array = valid state — user just has no requests yet.
-    // Throwing 404 was causing frontend to show error page.
-    // Frontend already handles empty array with "No Requests Yet" UI.
+    if (!connections.length) {
+      throw new NotFoundError("No pending requests found");
+    }
+
     res.status(200).json({
       success: true,
-      message: "Fetched pending connections successfully.",
-      data: connections,
+      message: "Fetched pending requests successfully.",
+      count: connections.length,
+      results: connections,
     });
   } catch (error) {
     next(error);
@@ -27,7 +29,10 @@ const showAllAcceptedRequests = async (req, res, next) => {
     const loggedInUser = req.user._id;
     const connections = await getAcceptedReceivedRequests(loggedInUser);
 
-    // WHY return [] not throw NotFoundError? Same reason as above.
+    if (!connections.length) {
+      throw new NotFoundError("No accepted requests found");
+    }
+
     const result = connections.map((row) =>
       row.senderUserId._id.toString() === loggedInUser.toString()
         ? row.receiverUserId
@@ -37,6 +42,7 @@ const showAllAcceptedRequests = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Fetched accepted connections successfully.",
+      count: connections.length,
       data: result,
     });
   } catch (error) {

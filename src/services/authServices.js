@@ -6,23 +6,9 @@ const sendEmail = require("../utils/email/sendEmail");
 const resetPasswordTemplate = require("../utils/email/resetPasswordTemplate");
 
 const signupService = async (userData) => {
-  const sanitizedData = {
-    firstName: userData.firstName?.trim(),
-    lastName: userData.lastName?.trim(),
-    email: userData.email?.toLowerCase().trim(),
-    password: userData.password,
-    confirmPassword: userData.confirmPassword,
-  };
-
-  validateSignupData(sanitizedData);
-
-  const { firstName, lastName, email, password } = sanitizedData;
+  const { firstName, lastName, email, password } = validateSignupData(userData);
 
   const existingUser = await User.findOne({ email });
-  // WHY ConflictError not ValidationError?
-  // ValidationError = wrong format/missing field (400)
-  // ConflictError = valid data but already exists (409)
-  // Frontend can handle 409 differently — "sign in instead?" prompt
   if (existingUser) throw new ConflictError("Email already registered.");
 
   const user = new User({ firstName, lastName, email, password });

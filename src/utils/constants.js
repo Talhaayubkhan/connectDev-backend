@@ -1,7 +1,4 @@
 const crypto = require("node:crypto");
-const mongoose = require("mongoose");
-
-const { ValidationError } = require("./errors");
 
 // services/constants.js
 const SENDER_FIELDS = [
@@ -27,18 +24,31 @@ const generateChatRoomId = (userId, targetUserId) => {
     .digest("hex");
 };
 
-// COMMON HELPERS
-const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
-const requireObjectId = (id, fieldName = "ID") => {
-  if (!id || !isValidObjectId(id)) {
-    throw new ValidationError(`Invalid ${fieldName}`);
-  }
+// PASSWORD RULES
+const PASSWORD_RULES = {
+  minLength: 8,
+  minLowercase: 1,
+  minUppercase: 1,
+  minNumbers: 1,
+  minSymbols: 1, // UPDATED: Changed from 0 to 1 - require special character
 };
+
+// Common password blacklist
+const COMMON_PASSWORDS = new Set([
+  "Password123!",
+  "Admin123!",
+  "Qwerty123!",
+  "Welcome123!",
+  "Pass@123",
+  "Test@1234",
+  "User@123",
+  "Login123!",
+]);
 
 module.exports = {
   SENDER_FIELDS,
   CORS_OPTIONS,
   generateChatRoomId,
-  isValidObjectId,
-  requireObjectId,
+  COMMON_PASSWORDS,
+  PASSWORD_RULES,
 };

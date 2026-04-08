@@ -15,6 +15,7 @@ const getProfile = async (req, res, next) => {
       resetPasswordToken,
       ...safeUser
     } = req.user.toObject();
+
     res.status(200).json({
       success: true,
       message: "Profile fetched successfully.",
@@ -50,6 +51,7 @@ const profileEdit = async (req, res, next) => {
     const updatedUser = await updateProfileService(req.body, req.user);
     const { password, tokenVersion, email, ...safeUser } =
       updatedUser.toObject();
+
     res.status(200).json({
       success: true,
       message: "Profile updated successfully.",
@@ -76,7 +78,6 @@ const changeProfilePassword = async (req, res, next) => {
     res.clearCookie("token", {
       httpOnly: true,
       sameSite: "strict",
-      // secure: process.env.NODE_ENV === "production",
     });
 
     res.status(200).json({

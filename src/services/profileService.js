@@ -8,13 +8,13 @@ const {
 } = require("../utils/errors");
 const {
   validateProfileData,
-  validatePassword,
+  validatePasswordChange,
 } = require("../utils/validation");
 const { SENDER_FIELDS } = require("../utils/constants");
 
 const uniqueProfileService = async (userId, currentUserId) => {
   if (!ObjectId.isValid(userId)) {
-    throw new ValidationError("Invalid user ID");
+    throw new NotFoundError("User not found");
   }
 
   const isSelf = currentUserId.toString() === userId.toString();
@@ -73,7 +73,7 @@ const changeUserPassword = async (userId, currentPassword, newPassword) => {
   // WHY validate format before checking sameness?
   // If new password fails format validation, no point checking sameness.
   // Validate first → then check business rules.
-  validatePassword(newPassword);
+  validatePasswordChange(newPassword);
 
   const isSame = await user.validatePassword(newPassword);
   if (isSame)
@@ -86,18 +86,6 @@ const changeUserPassword = async (userId, currentPassword, newPassword) => {
   await user.save();
   return true;
 };
-
-// const deleteAccountService = async (userId) => {
-//   // 1. Delete user
-//   await User.findByIdAndDelete(userId);
-
-//   // 2. Delete all connections
-//   await Connection.deleteMany({
-//     $or: [{ senderUserId: userId }, { receiverUserId: userId }],
-//   });
-
-//   return true;
-// };
 
 module.exports = {
   uniqueProfileService,

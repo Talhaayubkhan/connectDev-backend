@@ -36,17 +36,19 @@ const sendConnectionRequest = async (senderId, receiverId, status) => {
 };
 
 const acceptConnectionRequest = async (userId, requestId, status) => {
-  const request = await ConnectionRequest.findOne({
+  const connectionRequest = await ConnectionRequest.findOne({
     _id: requestId,
     receiverUserId: userId,
     status: "interested",
   });
 
-  if (!request) throw new NotFoundError("Connection request not found.");
+  if (!connectionRequest)
+    throw new NotFoundError("Connection request not found.");
 
-  request.status = status;
-  await request.save();
-  return request;
+  connectionRequest.status = status;
+  await connectionRequest.save();
+
+  return connectionRequest;
 };
 
 const getPendingReceivedRequests = async (userId) => {

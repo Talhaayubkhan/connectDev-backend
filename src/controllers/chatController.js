@@ -3,6 +3,7 @@ const {
   getOrCreateChatService,
   getMessagesService,
 } = require("../services/chatServices");
+const { NotFoundError } = require("../utils/errors");
 
 const {
   requireObjectId,
@@ -67,8 +68,13 @@ const getMessages = async (req, res, next) => {
 
     const messages = await getMessagesService(chatId, page, limit);
 
+    if (!messages.length) {
+      throw new NotFoundError("No messages found for this chat");
+    }
+
     res.status(200).json({
       success: true,
+      count: messages.length,
       data: messages,
     });
   } catch (error) {
