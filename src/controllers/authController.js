@@ -13,6 +13,7 @@ const {
 const userSignUp = async (req, res, next) => {
   try {
     const user = await signupService(req.body);
+
     res.status(201).json({
       success: true,
       message: "User registered successfully",
@@ -29,12 +30,7 @@ const userLogin = async (req, res, next) => {
     const { user, token } = await loginService(email, password);
 
     res.cookie("token", token, {
-      // httpOnly: true,
       sameSite: "strict",
-      // // WHY add secure in production?
-      // // secure: true = cookie only sent over HTTPS
-      // // In dev it would block localhost, so check NODE_ENV
-      // secure: process.env.NODE_ENV === "production",
       secure: true,
       maxAge: 24 * 60 * 60 * 1000,
     });
@@ -51,7 +47,6 @@ const userLogout = (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
     sameSite: "strict",
-    // secure: process.env.NODE_ENV === "production",
   });
   res.status(200).json({ success: true, message: "Logout successful" });
 };
