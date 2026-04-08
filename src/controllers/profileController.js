@@ -25,8 +25,6 @@ const getProfile = async (req, res, next) => {
   }
 };
 
-// controller/profile.controller.js
-
 const getUniqueProfile = async (req, res, next) => {
   try {
     const { userId } = req.params;
