@@ -1,10 +1,6 @@
 const crypto = require("node:crypto");
 const User = require("../models/userSchema");
-const {
-  ValidationError,
-  NotFoundError,
-  ConflictError,
-} = require("../utils/errors");
+const { ValidationError, ConflictError } = require("../utils/errors");
 const { validateSignupData, validatePassword } = require("../utils/validation");
 const sendEmail = require("../utils/email/sendEmail");
 const resetPasswordTemplate = require("../utils/email/resetPasswordTemplate");
@@ -81,13 +77,9 @@ const forgotPasswordService = async (email) => {
   // Don't reveal whether email exists — security best practice
   if (!user) return;
 
-  // Cooldown — prevent spam
-  if (
-    user.resetPasswordExpires &&
-    user.resetPasswordExpires > Date.now() + 14 * 60 * 1000
-  ) {
+  if (user.resetPasswordExpires && user.resetPasswordExpires > Date.now()) {
     throw new ValidationError(
-      "Reset email already sent. Please wait before requesting again.",
+      "Please wait 15 minutes before requesting again.",
     );
   }
 
@@ -102,6 +94,7 @@ const forgotPasswordService = async (email) => {
   // Frontend uses useSearchParams() — reads ?token=...
   // Path param (/reset-password/:token) would cause 404
   const resetURL = `${process.env.FRONTEND_URL}/auth/reset-password?token=${token}`;
+  // console.log(`Reset URL for ${email}: ${resetURL}`); // Log for testing
 
   await sendEmail(user.email, "Reset your password", {
     text: `Reset your password: ${resetURL}`,

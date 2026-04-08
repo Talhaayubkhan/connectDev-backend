@@ -4,7 +4,11 @@ const {
   forgotPasswordService,
   resetPasswordService,
 } = require("../services/authServices");
-const { ValidationError, NotFoundError } = require("../utils/errors");
+const {
+  validateForgotPasswordEmail,
+  validateResetToken,
+  validateResetPassword,
+} = require("../utils/validation");
 
 const userSignUp = async (req, res, next) => {
   try {
@@ -57,8 +61,9 @@ const forgotPassword = async (req, res, next) => {
     const { email } = req.body;
     // WHY validate email presence here not in service?
     // Controller = validate request. Service = business logic.
-    if (!email) throw new ValidationError("Email is required.");
-    await forgotPasswordService(email);
+    const validatedEmail = validateForgotPasswordEmail(email);
+
+    await forgotPasswordService(validatedEmail);
     res.status(200).json({
       success: true,
       message: "If this email exists, a reset link has been sent.",
@@ -71,6 +76,9 @@ const forgotPassword = async (req, res, next) => {
 const resetPassword = async (req, res, next) => {
   try {
     const { token, newPassword, confirmPassword } = req.body;
+    token = validateResetToken(token);
+    newPassword = validateResetPassword(newPassword, confirmPassword);
+
     await resetPasswordService(token, newPassword, confirmPassword);
     res.status(200).json({
       success: true,
