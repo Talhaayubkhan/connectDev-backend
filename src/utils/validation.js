@@ -67,6 +67,8 @@ const validateProfileData = (data) => {
     "about",
     "skills",
     "photoURL",
+    "location",
+    "occupation",
   ];
 
   if (!Object.keys(data).every((f) => ALLOWED_FIELDS.includes(f))) {
@@ -92,6 +94,20 @@ const validateProfileData = (data) => {
     }
 
     data.skills = [...new Set(cleaned)];
+  }
+
+  if (data.location) {
+    data.location = data.location.trim();
+    if (!validator.isLength(data.location, { min: 2, max: 100 })) {
+      throw new ValidationError("Invalid location");
+    }
+  }
+
+  if (data.occupation) {
+    data.occupation = data.occupation.trim();
+    if (!validator.isLength(data.occupation, { min: 2, max: 100 })) {
+      throw new ValidationError("Invalid occupation");
+    }
   }
 
   return data;

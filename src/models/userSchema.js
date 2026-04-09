@@ -65,8 +65,8 @@ const userSchema = new Schema(
       type: [String],
       default: [],
       validate(value) {
-        if (value.length > 10) {
-          throw new Error("Cannot add more than 10 skills");
+        if (value.length > 15) {
+          throw new Error("Cannot add more than 15 skills");
         }
       },
     },
@@ -76,6 +76,17 @@ const userSchema = new Schema(
       default: "Hey there! I am using ConnectDev.",
       trim: true,
     },
+    location: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+    },
+    occupation: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+    },
+
     isActive: {
       type: Boolean,
       default: true,

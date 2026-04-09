@@ -50,6 +50,8 @@ const loginService = async (email, password) => {
     age: user.age,
     skills: user.skills,
     about: user.about,
+    location: user.location,
+    occupation: user.occupation,
     isActive: user.isActive,
     createdAt: user.createdAt,
   };

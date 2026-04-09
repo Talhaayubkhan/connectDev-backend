@@ -70,7 +70,7 @@ const forgotPassword = async (req, res, next) => {
 
 const resetPassword = async (req, res, next) => {
   try {
-    const { token, newPassword, confirmPassword } = req.body;
+    let { token, newPassword, confirmPassword } = req.body;
     token = validateResetToken(token);
     newPassword = validateResetPassword(newPassword, confirmPassword);
 
