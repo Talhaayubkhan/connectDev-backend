@@ -57,7 +57,7 @@ const validateSignupData = (data) => {
 };
 
 // ========== PROFILE VALIDATION ==========
-
+// services/validation.js
 const validateProfileData = (data) => {
   const ALLOWED_FIELDS = [
     "firstName",
@@ -71,43 +71,87 @@ const validateProfileData = (data) => {
     "occupation",
   ];
 
-  if (!Object.keys(data).every((f) => ALLOWED_FIELDS.includes(f))) {
-    throw new ValidationError("Invalid update fields");
+  // Check for invalid fields
+  const invalidFields = Object.keys(data).filter(
+    (f) => !ALLOWED_FIELDS.includes(f),
+  );
+
+  if (invalidFields.length > 0) {
+    throw new ValidationError(`Invalid fields: ${invalidFields.join(", ")}`);
   }
 
-  if (data.firstName) {
+  // Validate firstName if present and not empty
+  if (data.firstName !== undefined) {
+    if (!data.firstName || data.firstName.trim() === "") {
+      throw new ValidationError("First name cannot be empty");
+    }
     data.firstName = data.firstName.trim();
     if (!validator.isLength(data.firstName, { min: 2, max: 50 })) {
-      throw new ValidationError("Invalid first name");
+      throw new ValidationError("First name must be 2-50 characters");
     }
   }
 
-  if (data.skills) {
+  // Similar validation for lastName
+  if (data.lastName !== undefined) {
+    if (!data.lastName || data.lastName.trim() === "") {
+      throw new ValidationError("Last name cannot be empty");
+    }
+    data.lastName = data.lastName.trim();
+    if (!validator.isLength(data.lastName, { min: 2, max: 50 })) {
+      throw new ValidationError("Last name must be 2-50 characters");
+    }
+  }
+
+  // Validate skills
+  if (data.skills !== undefined) {
     if (!Array.isArray(data.skills)) {
-      throw new ValidationError("Skills must be array");
+      throw new ValidationError("Skills must be an array");
     }
 
-    const cleaned = data.skills.map((s) => s.trim());
+    const cleaned = data.skills
+      .map((s) => (typeof s === "string" ? s.trim() : ""))
+      .filter((s) => s !== "");
 
     if (cleaned.some((s) => s.length < 2)) {
-      throw new ValidationError("Each skill must be at least 2 chars");
+      throw new ValidationError("Each skill must be at least 2 characters");
     }
 
-    data.skills = [...new Set(cleaned)];
+    data.skills = [...new Set(cleaned)]; // Remove duplicates
   }
 
-  if (data.location) {
-    data.location = data.location.trim();
-    if (!validator.isLength(data.location, { min: 2, max: 100 })) {
-      throw new ValidationError("Invalid location");
+  // Validate location
+  if (data.location !== undefined) {
+    if (data.location && typeof data.location === "string") {
+      data.location = data.location.trim();
+      if (
+        data.location.length > 0 &&
+        !validator.isLength(data.location, { min: 2, max: 100 })
+      ) {
+        throw new ValidationError("Location must be 2-100 characters");
+      }
     }
   }
 
-  if (data.occupation) {
-    data.occupation = data.occupation.trim();
-    if (!validator.isLength(data.occupation, { min: 2, max: 100 })) {
-      throw new ValidationError("Invalid occupation");
+  // Validate occupation
+  if (data.occupation !== undefined) {
+    if (data.occupation && typeof data.occupation === "string") {
+      data.occupation = data.occupation.trim();
+      if (
+        data.occupation.length > 0 &&
+        !validator.isLength(data.occupation, { min: 2, max: 100 })
+      ) {
+        throw new ValidationError("Occupation must be 2-100 characters");
+      }
     }
+  }
+
+  // Validate age
+  if (data.age !== undefined) {
+    const age = Number(data.age);
+    if (data.age !== "" && (isNaN(age) || age < 18 || age > 120)) {
+      throw new ValidationError("Age must be between 18 and 120");
+    }
+    data.age = age || undefined;
   }
 
   return data;

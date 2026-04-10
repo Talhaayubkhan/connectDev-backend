@@ -49,8 +49,22 @@ const getUniqueProfile = async (req, res, next) => {
 const profileEdit = async (req, res, next) => {
   try {
     const updatedUser = await updateProfileService(req.body, req.user);
-    const { password, tokenVersion, email, ...safeUser } =
-      updatedUser.toObject();
+
+    // Create consistent whitelist (same as login)
+    const safeUser = {
+      id: updatedUser._id,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
+      photoURL: updatedUser.photoURL,
+      gender: updatedUser.gender,
+      age: updatedUser.age,
+      skills: updatedUser.skills,
+      about: updatedUser.about,
+      location: updatedUser.location,
+      occupation: updatedUser.occupation,
+      isActive: updatedUser.isActive,
+      createdAt: updatedUser.createdAt,
+    };
 
     res.status(200).json({
       success: true,

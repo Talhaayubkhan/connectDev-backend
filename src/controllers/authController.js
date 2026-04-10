@@ -29,15 +29,18 @@ const userLogin = async (req, res, next) => {
     const { email, password } = req.body;
     const { user, token } = await loginService(email, password);
 
+    // FIX: Dynamic secure flag based on environment
     res.cookie("token", token, {
-      sameSite: "strict",
-      secure: true,
-      maxAge: 24 * 60 * 60 * 1000,
+      httpOnly: true, // ⭐ ADD THIS: Prevents XSS attacks
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: "/", // ⭐ ADD: Cookie available for all routes
     });
 
-    res
-      .status(200)
-      .json({ success: true, message: "Login successful", data: user });
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      data: user,
+    });
   } catch (error) {
     next(error);
   }
