@@ -7,18 +7,27 @@ const { ValidationError } = require("../utils/errors");
 
 const getProfile = async (req, res, next) => {
   try {
-    const {
-      email,
-      password,
-      tokenVersion,
-      resetPasswordExpires,
-      resetPasswordToken,
-      ...safeUser
-    } = req.user.toObject();
+    // WHITELIST approach: Explicitly pick safe fields
+    const user = req.user.toObject();
+    
+    
+    const safeUser = {
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      photoURL: user.photoURL,
+      about: user.about,
+      skills: user.skills,
+      age: user.age,
+      gender: user.gender,
+      location: user.location,
+      occupation: user.occupation,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+    };
 
     res.status(200).json({
       success: true,
-      message: "Profile fetched successfully.",
       data: safeUser,
     });
   } catch (error) {
