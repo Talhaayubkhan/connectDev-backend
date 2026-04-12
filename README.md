@@ -1,47 +1,35 @@
-# devConnect — Backend API 🚀
+# connectDev — Backend API
 
-REST API and real-time layer for **devConnect**, a developer networking platform where people can discover profiles, send connection requests, build a contact list, and chat in real time.
+REST API and real-time layer for **connectDev**, a developer networking platform where people can discover profiles, send connection requests, build a contact list, and chat in real time.
 
-> This repository contains **only the Node.js backend**. See the frontend repo for the client-side code.
+> This repository contains only the Node.js backend. See the frontend repo for the client-side code.
 
----
+## What this backend does
 
-## ✨ What this backend does
+- **Auth** — Sign up, login (JWT in httpOnly cookie), logout, forgot/reset password via email
+- **Profiles** — View and edit your own profile; view another user's public profile
+- **Connections** — Send requests (`interested` / `ignored`); accept or reject incoming requests
+- **Discovery** — Feed of suggested users; lists of received requests and accepted connections
+- **Chat** — REST endpoints for chat list, opening a thread, and paginated message history; live messaging over Socket.IO
 
-| Area | Behavior |
-|------|----------|
-| 🔐 **Auth** | Sign up, login (JWT in httpOnly cookie), logout, forgot/reset password via email |
-| 👤 **Profiles** | View and edit your own profile; view another user's public profile |
-| 🤝 **Connections** | Send requests (`interested` / `ignored`); accept or reject incoming requests |
-| 🔍 **Discovery** | Feed of suggested users; lists of received requests and accepted connections |
-| 💬 **Chat** | REST endpoints for chat list, opening a thread, and paginated message history; live messaging over Socket.IO |
+## Tech Stack
 
----
+- **Runtime:** Node.js (LTS)
+- **Framework:** Express 5
+- **Database:** MongoDB via Mongoose 9
+- **Auth:** JWT (cookie + Socket handshake), bcrypt, `tokenVersion` for session invalidation
+- **Email:** Nodemailer (Gmail) for password reset
+- **Real-time:** Socket.IO 4 — shares the same HTTP server as Express
+- **Utilities:** `cookie-parser`, `cors`, `express-rate-limit`, `validator`
 
-## 🛠️ Tech stack
+## Prerequisites
 
-| Layer | Technology |
-|-------|-----------|
-| Runtime | Node.js (LTS) |
-| Framework | Express 5 |
-| Database | MongoDB via Mongoose 9 |
-| Auth | JWT (cookie + Socket handshake), bcrypt, `tokenVersion` for session invalidation |
-| Email | Nodemailer (Gmail) for password reset |
-| Real-time | Socket.IO 4 — shares the same HTTP server as Express |
-| Utilities | `cookie-parser`, `cors`, `express-rate-limit`, `validator` |
+- Node.js (LTS recommended)
+- A running MongoDB instance and its connection string
+- A Gmail account + app password for the password reset email flow
+- A frontend that shares the CORS origin and sends credentials for cookie-based auth (see [CORS section](#cors-and-frontend))
 
----
-
-## ⚙️ Prerequisites
-
-- **Node.js** (LTS recommended)
-- A running **MongoDB** instance and its connection string
-- A **Gmail account + app password** for the password reset email flow
-- A **frontend** that shares the CORS origin and sends credentials for cookie-based auth (see [CORS section](#-cors-and-frontend))
-
----
-
-## 🔑 Environment variables
+## Environment Variables
 
 Create a `.env` file in the project root (same folder as `package.json`):
 
@@ -54,9 +42,9 @@ Create a `.env` file in the project root (same folder as `package.json`):
 | `EMAIL_PASS` | For reset flow | Gmail app password (or SMTP secret) |
 | `FRONTEND_URL` | For reset flow | Base URL of the frontend; injected into the password reset link |
 
----
+> **Never commit your `.env` file.** Make sure it is listed in `.gitignore`.
 
-## 🚀 Install and run
+## Install and Run
 
 ```bash
 npm install
@@ -68,8 +56,6 @@ npm install
 npm run dev
 ```
 
-> If you prefer not to use nodemon, run `npm start` and restart manually after changes.
-
 **Production:**
 
 ```bash
@@ -78,13 +64,13 @@ npm start
 
 The server connects to MongoDB first; on success it starts listening on `PORT` and initializes Socket.IO on the same HTTP server.
 
----
+> **Note:** This project is currently in active development and not yet deployed to production. The `npm start` script is available but no production environment has been configured yet.
 
-## 📡 HTTP API overview
+## HTTP API Overview
 
 All protected routes require a valid `token` httpOnly cookie set at login.
 
-### 🔐 Auth — `src/routes/authRouter.js`
+### Auth — `src/routes/authRouter.js`
 
 | Method | Path | Auth | Notes |
 |--------|------|------|-------|
@@ -94,7 +80,7 @@ All protected routes require a valid `token` httpOnly cookie set at login.
 | `POST` | `/auth/forgot-password` | No | Sends reset email if user exists; rate-limited (3 req / 15 min) |
 | `PATCH` | `/auth/reset-password` | No | Body: reset token + new password (validated) |
 
-### 👤 Profile — `src/routes/profileRouter.js`
+### Profile — `src/routes/profileRouter.js`
 
 | Method | Path | Auth |
 |--------|------|------|
@@ -103,7 +89,7 @@ All protected routes require a valid `token` httpOnly cookie set at login.
 | `PATCH` | `/profile/edit` | Yes |
 | `PATCH` | `/profile/changePassword` | Yes |
 
-### 🤝 Connection requests — `src/routes/connectionRequestRoutes.js`
+### Connection Requests — `src/routes/connectionRequestRoutes.js`
 
 | Method | Path | Auth | Status segment |
 |--------|------|------|----------------|
@@ -112,7 +98,7 @@ All protected routes require a valid `token` httpOnly cookie set at login.
 
 Statuses are validated by `src/middlewares/statusValidation.js`.
 
-### 🔍 User feed and lists — `src/routes/userRouter.js`
+### User Feed and Lists — `src/routes/userRouter.js`
 
 | Method | Path | Auth |
 |--------|------|------|
@@ -120,7 +106,7 @@ Statuses are validated by `src/middlewares/statusValidation.js`.
 | `GET` | `/user/connections` | Yes |
 | `GET` | `/user/feed` | Yes |
 
-### 💬 Chat (REST) — `src/routes/chatRouter.js`
+### Chat (REST) — `src/routes/chatRouter.js`
 
 | Method | Path | Auth |
 |--------|------|------|
@@ -128,9 +114,7 @@ Statuses are validated by `src/middlewares/statusValidation.js`.
 | `GET` | `/chats/user/:targetUserId` | Yes — get or create a 1:1 chat thread + recent messages |
 | `GET` | `/chats/:chatId/messages` | Yes — paginated message history |
 
----
-
-## ⚡ Socket.IO — real-time chat
+## Socket.IO — Real-time Chat
 
 Configured in `src/utils/socket.js` and attached in `src/server.js`.
 
@@ -154,12 +138,10 @@ The token is verified with `JWT_SECRET` before the connection is accepted.
 
 Room IDs are generated by `generateChatRoomId` in `src/utils/constants.js`.
 
----
-
-## 🗂️ Project structure
+## Project Structure
 
 ```
-devConnect-backend/
+connectDev-backend/
 ├── package.json
 └── src/
     ├── server.js                  # Entry point — HTTP server, DB connect, Socket.IO init
@@ -192,9 +174,7 @@ devConnect-backend/
 
 **Request flow:** `routes` → `controllers` → `services` → Mongoose `models`. All errors bubble up to `errorHandler` for a consistent `{ success, message }` JSON response.
 
----
-
-## 🗃️ Data model
+## Data Model
 
 | Model | Key fields |
 |-------|-----------|
@@ -203,31 +183,27 @@ devConnect-backend/
 | **Chat** | Two `participants`, optional `lastMessage` ref |
 | **Message** | `chat`, `sender`, `text` (max 2000 chars) |
 
----
-
-## 🌐 CORS and frontend
+## CORS and Frontend
 
 CORS is configured in `src/utils/constants.js` with `origin: http://localhost:5173` and `credentials: true` so the browser includes cookies on every request.
 
 > **Before deploying:** change the `origin` value to your production frontend URL, or derive it from `process.env.FRONTEND_URL`. The same CORS config is applied to both Express and Socket.IO.
 
----
+## Scripts
 
-## 📋 Scripts
-
-| Script | Command |
-|--------|---------|
+| Script | Description |
+|--------|-------------|
 | `npm start` | `node src/server.js` |
 | `npm run dev` | `nodemon src/server.js` |
 
----
+## Related
 
-## 👨‍💻 Author
+[Frontend Repository](../connectDev-frontend) — React / Vite client
 
-**Talha Ayub** — backend for the devConnect project.
+## Author
 
----
+**Talha Ayub**
 
-## 📄 License
+## License
 
-ISC — see `package.json`.
+ISC — see `package.json`
