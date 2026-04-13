@@ -8,6 +8,38 @@ const {
 const sendEmail = require("../utils/email/sendEmail");
 const resetPasswordTemplate = require("../utils/email/resetPasswordTemplate");
 
+const buildSafeUser = (user) => ({
+  id: user._id,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  email: user.email,
+  photoURL: user.photoURL,
+  gender: user.gender,
+  age: user.age,
+  skills: user.skills,
+  about: user.about,
+  location: user.location,
+  occupation: user.occupation,
+  isActive: user.isActive,
+  createdAt: user.createdAt,
+});
+
+const validateLoginInput = (email, password) => {
+  // Stronger boundary checks: handle non-string payloads safely.
+  if (typeof email !== "string" || typeof password !== "string") {
+    throw new ValidationError("Email and password are required.");
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedPassword = password.trim();
+
+  if (!normalizedEmail || !normalizedPassword) {
+    throw new ValidationError("Email and password are required.");
+  }
+
+  return { normalizedEmail, normalizedPassword };
+};
+
 const signupService = async (userData) => {
   // validateSignupData throws ValidationError if input is bad; we don't duplicate those checks here.
   const { firstName, lastName, email, password } = validateSignupData(userData);
@@ -28,39 +60,24 @@ const signupService = async (userData) => {
 };
 
 const loginService = async (email, password) => {
-  if (!email || !password) {
-    throw new ValidationError("Email and password are required.");
-  }
-
-  // Same normalization idea as signup (lowercase email) so "User@Mail.com" matches the stored email.
-  const normalizedEmail = email.trim().toLowerCase();
+  // Keep normalization + validation in one place for easier maintenance.
+  const { normalizedEmail, normalizedPassword } = validateLoginInput(
+    email,
+    password,
+  );
   const user = await User.findOne({ email: normalizedEmail });
 
   // WHY same message for both cases?
   // Security: don't reveal whether email exists
   if (!user) throw new ValidationError("Invalid email or password.");
 
-  const isMatch = await user.validatePassword(password);
+  const isMatch = await user.validatePassword(normalizedPassword);
   if (!isMatch) throw new ValidationError("Invalid email or password.");
 
   const token = await user.getSignJWT();
 
-  // whitelist fields (best practice)
-  const safeUser = {
-    id: user._id,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email,
-    photoURL: user.photoURL,
-    gender: user.gender,
-    age: user.age,
-    skills: user.skills,
-    about: user.about,
-    location: user.location,
-    occupation: user.occupation,
-    isActive: user.isActive,
-    createdAt: user.createdAt,
-  };
+  // Single serializer avoids drift of API response fields across auth flows.
+  const safeUser = buildSafeUser(user);
 
   return { user: safeUser, token };
 };
@@ -73,9 +90,9 @@ const forgotPasswordService = async (email) => {
   if (!user) return;
 
   if (user.resetPasswordExpires && user.resetPasswordExpires > Date.now()) {
-    throw new ValidationError(
-      "Please wait 15 minutes before requesting again.",
-    );
+    // Security hardening: always return success from this flow so attackers cannot
+    // infer account existence/timing behavior by observing different responses.
+    return;
   }
 
   const token = crypto.randomBytes(32).toString("hex");

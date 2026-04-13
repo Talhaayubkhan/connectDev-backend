@@ -8,7 +8,6 @@ const { authTokenCookieOptions } = require("../utils/constants");
 const {
   validateForgotPasswordEmail,
   validateResetToken,
-  validateResetPassword,
 } = require("../utils/validation");
 
 const userSignUp = async (req, res, next) => {
@@ -74,9 +73,10 @@ const forgotPassword = async (req, res, next) => {
 
 const resetPassword = async (req, res, next) => {
   try {
-    let { token, newPassword, confirmPassword } = req.body;
+    // Keep lightweight boundary validation here (request shape / token format).
+    // Password rule validation happens in the service to avoid duplicated logic.
+    const { token, newPassword, confirmPassword } = req.body;
     token = validateResetToken(token);
-    newPassword = validateResetPassword(newPassword, confirmPassword);
 
     await resetPasswordService(token, newPassword, confirmPassword);
     res.status(200).json({
