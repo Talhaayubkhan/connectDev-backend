@@ -4,6 +4,7 @@ const {
   forgotPasswordService,
   resetPasswordService,
 } = require("../services/authServices");
+const { authTokenCookieOptions } = require("../utils/constants");
 const {
   validateForgotPasswordEmail,
   validateResetToken,
@@ -29,12 +30,9 @@ const userLogin = async (req, res, next) => {
     const { email, password } = req.body;
     const { user, token } = await loginService(email, password);
 
-    // FIX: Dynamic secure flag based on environment
-    res.cookie("token", token, {
-      httpOnly: true, // ⭐ ADD THIS: Prevents XSS attacks
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      path: "/", // ⭐ ADD: Cookie available for all routes
-    });
+    // Store JWT in an httpOnly cookie (see authTokenCookieOptions above).
+    // Alternative is returning the token in JSON and using localStorage — easier for SPAs, but any XSS can steal it; httpOnly cookies are a common tradeoff.
+    res.cookie("token", token, authTokenCookieOptions);
 
     res.status(200).json({
       success: true,
@@ -47,9 +45,12 @@ const userLogin = async (req, res, next) => {
 };
 
 const userLogout = (req, res) => {
+  // Pass the same flags as res.cookie(...), otherwise some browsers keep the old cookie.
   res.clearCookie("token", {
-    httpOnly: true,
-    sameSite: "strict",
+    httpOnly: authTokenCookieOptions.httpOnly,
+    path: authTokenCookieOptions.path,
+    sameSite: authTokenCookieOptions.sameSite,
+    secure: authTokenCookieOptions.secure,
   });
   res.status(200).json({ success: true, message: "Logout successful" });
 };

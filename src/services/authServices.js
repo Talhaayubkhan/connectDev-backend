@@ -1,11 +1,15 @@
 const crypto = require("node:crypto");
 const User = require("../models/userSchema");
 const { ValidationError, ConflictError } = require("../utils/errors");
-const { validateSignupData, validatePassword } = require("../utils/validation");
+const {
+  validateSignupData,
+  validateResetPassword,
+} = require("../utils/validation");
 const sendEmail = require("../utils/email/sendEmail");
 const resetPasswordTemplate = require("../utils/email/resetPasswordTemplate");
 
 const signupService = async (userData) => {
+  // validateSignupData throws ValidationError if input is bad; we don't duplicate those checks here.
   const { firstName, lastName, email, password } = validateSignupData(userData);
 
   const existingUser = await User.findOne({ email });
@@ -14,6 +18,7 @@ const signupService = async (userData) => {
   const user = new User({ firstName, lastName, email, password });
   await user.save();
 
+  // Return only safe, public fields — never send password hash or internal flags to the client.
   return {
     id: user._id,
     firstName: user.firstName,
@@ -27,6 +32,7 @@ const loginService = async (email, password) => {
     throw new ValidationError("Email and password are required.");
   }
 
+  // Same normalization idea as signup (lowercase email) so "User@Mail.com" matches the stored email.
   const normalizedEmail = email.trim().toLowerCase();
   const user = await User.findOne({ email: normalizedEmail });
 
@@ -60,6 +66,7 @@ const loginService = async (email, password) => {
 };
 
 const forgotPasswordService = async (email) => {
+  // Email is already normalized in the controller (validateForgotPasswordEmail). Same string shape as in the DB.
   const user = await User.findOne({ email });
   // WHY return silently?
   // Don't reveal whether email exists — security best practice
@@ -93,6 +100,10 @@ const forgotPasswordService = async (email) => {
 const resetPasswordService = async (token, newPassword, confirmPassword) => {
   if (!token) throw new ValidationError("Reset token is required.");
 
+  // Check password rules before hitting the database: cheaper and avoids work when input is obviously wrong.
+  // (Controller already validates for HTTP; we repeat here so this service stays correct if another caller is added later.)
+  validateResetPassword(newPassword, confirmPassword);
+
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
   const user = await User.findOne({
@@ -103,8 +114,6 @@ const resetPasswordService = async (token, newPassword, confirmPassword) => {
   // WHY vague message?
   // Don't tell attacker whether token is invalid vs expired
   if (!user) throw new ValidationError("Reset link is invalid or has expired.");
-
-  validatePassword(newPassword, confirmPassword);
 
   user.password = newPassword;
   user.resetPasswordToken = undefined;
