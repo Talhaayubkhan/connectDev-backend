@@ -1,5 +1,6 @@
 const Chat = require("../models/chatSchema");
 const Message = require("../models/messageSchema");
+const { generateAiChat } = require("../utils/gemini");
 
 const CHAT_USER_FIELDS = "firstName lastName photoURL";
 
@@ -86,8 +87,33 @@ const getMessagesService = async (chatId, page, limit) => {
     .limit(limit);
 };
 
+const processChatMessage = async (messages) => {
+  // Tomorrow you add DB calls HERE, not in controller
+  // Example future additions:
+  // await checkUserMessageLimit(userId);
+  // await ChatHistory.create({ messages });
+
+  const reply = await generateAiChat(messages);
+  if (
+    reply.includes("error") ||
+    reply.includes(
+      "This model is currently experiencing high demand, please try again later",
+    )
+  ) {
+    throw new ValidationError(
+      "This model is currently experiencing high demand, please try again later",
+    );
+  }
+
+  // You could transform the reply here if needed
+  // Example: strip markdown, add metadata, etc.
+
+  return reply;
+};
+
 module.exports = {
   getUserChatsService,
   getOrCreateChatService,
   getMessagesService,
+  processChatMessage,
 };

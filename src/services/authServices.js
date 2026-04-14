@@ -7,39 +7,7 @@ const {
 } = require("../utils/validation");
 const sendEmail = require("../utils/email/sendEmail");
 const resetPasswordTemplate = require("../utils/email/resetPasswordTemplate");
-
-const buildSafeUser = (user) => ({
-  id: user._id,
-  firstName: user.firstName,
-  lastName: user.lastName,
-  email: user.email,
-  photoURL: user.photoURL,
-  gender: user.gender,
-  age: user.age,
-  skills: user.skills,
-  about: user.about,
-  location: user.location,
-  occupation: user.occupation,
-  isActive: user.isActive,
-  createdAt: user.createdAt,
-});
-
-const validateLoginInput = (email, password) => {
-  // Stronger boundary checks: handle non-string payloads safely.
-  if (typeof email !== "string" || typeof password !== "string") {
-    throw new ValidationError("Email and password are required.");
-  }
-
-  const normalizedEmail = email.trim().toLowerCase();
-  const normalizedPassword = password.trim();
-
-  if (!normalizedEmail || !normalizedPassword) {
-    throw new ValidationError("Email and password are required.");
-  }
-
-  return { normalizedEmail, normalizedPassword };
-};
-
+const { validateLoginInput, buildSafeUser } = require("../utils/constants");
 const signupService = async (userData) => {
   // validateSignupData throws ValidationError if input is bad; we don't duplicate those checks here.
   const { firstName, lastName, email, password } = validateSignupData(userData);

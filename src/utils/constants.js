@@ -43,9 +43,64 @@ const authTokenCookieOptions = {
   secure: isProduction,
 };
 
+// constants.js
+
+const COMMON_PASSWORDS = new Set([
+  "123456",
+  "password",
+  "123456789",
+  "qwerty",
+  "abc123",
+  "password123",
+]);
+
+const PASSWORD_RULES = {
+  minLength: 8,
+  minLowercase: 1,
+  minUppercase: 1,
+  minNumbers: 1,
+  minSymbols: 1,
+};
+
+const buildSafeUser = (user) => ({
+  id: user._id,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  email: user.email,
+  photoURL: user.photoURL,
+  gender: user.gender,
+  age: user.age,
+  skills: user.skills,
+  about: user.about,
+  location: user.location,
+  occupation: user.occupation,
+  isActive: user.isActive,
+  createdAt: user.createdAt,
+});
+
+const validateLoginInput = (email, password) => {
+  // Stronger boundary checks: handle non-string payloads safely.
+  if (typeof email !== "string" || typeof password !== "string") {
+    throw new ValidationError("Email and password are required.");
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedPassword = password.trim();
+
+  if (!normalizedEmail || !normalizedPassword) {
+    throw new ValidationError("Email and password are required.");
+  }
+
+  return { normalizedEmail, normalizedPassword };
+};
+
 module.exports = {
   SENDER_FIELDS,
   CORS_OPTIONS,
   generateChatRoomId,
   authTokenCookieOptions,
+  COMMON_PASSWORDS,
+  PASSWORD_RULES,
+  buildSafeUser,
+  validateLoginInput,
 };

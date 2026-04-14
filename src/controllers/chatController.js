@@ -2,14 +2,16 @@ const {
   getUserChatsService,
   getOrCreateChatService,
   getMessagesService,
+  processChatMessage,
 } = require("../services/chatServices");
 const { NotFoundError } = require("../utils/errors");
-
+const { ValidationError } = require("../utils/errors");
 const {
   requireObjectId,
   validateChatAccess,
   validateMessagePagination,
 } = require("../utils/validation");
+const { generateAiChat } = require("../utils/gemini");
 
 // 1. GET USER CHATS (SIDEBAR)
 
@@ -82,8 +84,28 @@ const getMessages = async (req, res, next) => {
   }
 };
 
+const getGeneratedAiChats = async (req, res, next) => {
+  try {
+    const { message } = req.body;
+
+    if (!message || message.length === 0 || !Array.isArray(message)) {
+      throw new ValidationError("Message is required");
+    }
+
+    const reply = await processChatMessage(message);
+
+    res.status(200).json({
+      success: true,
+      data: reply,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getUserChats,
   getOrCreateChat,
   getMessages,
+  getGeneratedAiChats,
 };

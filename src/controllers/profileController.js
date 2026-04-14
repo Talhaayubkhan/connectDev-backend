@@ -3,14 +3,14 @@ const {
   changeUserPassword,
   uniqueProfileService,
 } = require("../services/profileService");
+const { buildSafeUser } = require("../utils/constants");
 const { ValidationError } = require("../utils/errors");
 
 const getProfile = async (req, res, next) => {
   try {
     // WHITELIST approach: Explicitly pick safe fields
     const user = req.user.toObject();
-    
-    
+
     const safeUser = {
       _id: user._id,
       firstName: user.firstName,
@@ -60,20 +60,7 @@ const profileEdit = async (req, res, next) => {
     const updatedUser = await updateProfileService(req.body, req.user);
 
     // Create consistent whitelist (same as login)
-    const safeUser = {
-      id: updatedUser._id,
-      firstName: updatedUser.firstName,
-      lastName: updatedUser.lastName,
-      photoURL: updatedUser.photoURL,
-      gender: updatedUser.gender,
-      age: updatedUser.age,
-      skills: updatedUser.skills,
-      about: updatedUser.about,
-      location: updatedUser.location,
-      occupation: updatedUser.occupation,
-      isActive: updatedUser.isActive,
-      createdAt: updatedUser.createdAt,
-    };
+    const safeUser = buildSafeUser(updatedUser);
 
     res.status(200).json({
       success: true,
