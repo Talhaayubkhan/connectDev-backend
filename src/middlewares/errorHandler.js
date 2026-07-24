@@ -12,7 +12,7 @@ const errorHandler = (err, req, res, next) => {
 
   // WHY isOperational check?
   // isOperational = true  → we threw this intentionally (AuthError, ValidationError etc)
-  //                       → safe to send actual message to client
+  //                       → safe to senad actual message to client
   // isOperational = false → unexpected crash or bug
   //                       → NEVER send internal details to client (security risk)
   //                       → send generic message instead
