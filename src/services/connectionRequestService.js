@@ -15,22 +15,26 @@ const sendConnectionRequest = async (senderId, receiverId, status) => {
     throw new ValidationError("Cannot send request to yourself.");
   }
 
-  const exists = await ConnectionRequest.findOne({
+  await ConnectionRequest.findOne({
     $or: [
       { senderUserId: senderId, receiverUserId: receiverId },
       { senderUserId: receiverId, receiverUserId: senderId },
     ],
   });
 
+  // console.log("User exists", exists);
+
   // WHY ConflictError not ValidationError?
   // Data is valid — conflict is that it already exists
-  if (exists) throw new ConflictError("Connection already exists.");
+  // if (exists) throw new ConflictError("Connection already exists.");
 
   const request = new ConnectionRequest({
     senderUserId: senderId,
     receiverUserId: receiverId,
     status,
   });
+
+  // console.log("Request", request);
 
   return await request.save();
 };
