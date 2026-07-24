@@ -22,19 +22,11 @@ const sendConnectionRequest = async (senderId, receiverId, status) => {
     ],
   });
 
-  // console.log("User exists", exists);
-
-  // WHY ConflictError not ValidationError?
-  // Data is valid — conflict is that it already exists
-  // if (exists) throw new ConflictError("Connection already exists.");
-
   const request = new ConnectionRequest({
     senderUserId: senderId,
     receiverUserId: receiverId,
     status,
   });
-
-  // console.log("Request", request);
 
   return await request.save();
 };

@@ -9,7 +9,6 @@ const sendRequest = async (req, res, next) => {
     const { toUserId: receiverId, status } = req.params;
 
     const data = await sendConnectionRequest(senderId, receiverId, status);
-    // console.log("Sent connection request successfully", data);
 
     return res.status(201).json({
       success: true,
