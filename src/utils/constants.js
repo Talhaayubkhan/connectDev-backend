@@ -1,6 +1,11 @@
 const crypto = require("node:crypto");
+// ADDED: this import was missing. validateLoginInput() throws
+// "new ValidationError(...)" below, but nothing imported ValidationError
+// into this file — that would throw "ValidationError is not defined"
+// (a ReferenceError) the first time someone submits a bad login,
+// which then gets caught as an unexpected 500 instead of a clean 400.
+const { ValidationError } = require("./errors");
 
-// services/constants.js
 const SENDER_FIELDS = [
   "firstName",
   "lastName",
@@ -12,38 +17,25 @@ const SENDER_FIELDS = [
 ];
 
 const CORS_OPTIONS = {
-  // origin: process.env.FRONTEND_URL, // Frontend URL
-  origin: "http://localhost:5173", // or your frontend port
+  // CHANGED: use the env var when set, fall back to localhost for dev.
+  // Before, this was hardcoded to localhost — meaning your deployed
+  // production backend would still only accept requests from
+  // localhost:5173, silently blocking your real frontend with a CORS error.
+  origin: process.env.FRONTEND_URL || "http://localhost:5173",
   credentials: true, // Allow cookies to be sent
 };
 
-const generateChatRoomId = (userId, targetUserId) => {
-  return crypto
-    .createHash("sha256")
-    .update([userId, targetUserId].sort().join("_"))
-    .digest("hex");
-};
-
-// Cookie options shared by login + logout so the browser can reliably set and clear the same cookie.
-// Behind the scenes: clearCookie() only removes the cookie if its path / sameSite / secure flags match how it was set.
 const isProduction = process.env.NODE_ENV === "production";
 
-// Keep maxAge in line with JWT expiry in userSchema (getSignJWT → expiresIn: "7d").
-// If the cookie died sooner than the token, the token would still be "valid" but the browser would stop sending it — confusing when debugging.
 const AUTH_TOKEN_COOKIE_MAX_MS = 7 * 24 * 60 * 60 * 1000;
 
 const authTokenCookieOptions = {
   httpOnly: true,
-  // JS on the page cannot read this cookie → reduces damage if someone injects malicious script (XSS).
   maxAge: AUTH_TOKEN_COOKIE_MAX_MS,
   path: "/",
-  // lax: cookie is sent on top-level navigations to your site; strict would skip some cross-site flows. Both help with CSRF vs no SameSite.
   sameSite: "lax",
-  // secure: only send over HTTPS. Must stay false on local http:// dev servers or the browser will refuse to store the cookie.
   secure: isProduction,
 };
-
-// constants.js
 
 const COMMON_PASSWORDS = new Set([
   "123456",
@@ -79,9 +71,8 @@ const buildSafeUser = (user) => ({
 });
 
 const validateLoginInput = (email, password) => {
-  // Stronger boundary checks: handle non-string payloads safely.
   if (typeof email !== "string" || typeof password !== "string") {
-    throw new ValidationError("Email and password are required.");
+    throw new ValidationError("Email and password are required."); // now works correctly
   }
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -97,10 +88,11 @@ const validateLoginInput = (email, password) => {
 module.exports = {
   SENDER_FIELDS,
   CORS_OPTIONS,
-  generateChatRoomId,
   authTokenCookieOptions,
   COMMON_PASSWORDS,
   PASSWORD_RULES,
   buildSafeUser,
   validateLoginInput,
+  // REMOVED: generateChatRoomId — only used by the now-removed socket.js.
+  // Dead exports are confusing; if nothing imports it, don't export it.
 };
