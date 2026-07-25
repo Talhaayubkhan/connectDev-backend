@@ -1,13 +1,8 @@
 const app = require("./app");
 const http = require("http");
 const connectDB = require("./config/database");
-const { initSocket } = require("./utils/socket");
 
 const PORT = process.env.PORT || 3000;
-
-const server = http.createServer(app);
-
-initSocket(server);
 
 connectDB()
   .then(() => {
