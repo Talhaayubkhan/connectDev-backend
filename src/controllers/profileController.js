@@ -3,7 +3,10 @@ const {
   changeUserPassword,
   uniqueProfileService,
 } = require("../services/profileService");
-const { buildSafeUser } = require("../utils/constants");
+const {
+  buildSafeUser,
+  authTokenCookieOptions,
+} = require("../utils/constants");
 const { ValidationError } = require("../utils/errors");
 
 const getProfile = async (req, res, next) => {
@@ -86,8 +89,10 @@ const changeProfilePassword = async (req, res, next) => {
     await changeUserPassword(req.user._id, currentPassword, newPassword);
 
     res.clearCookie("token", {
-      httpOnly: true,
-      sameSite: "strict",
+      httpOnly: authTokenCookieOptions.httpOnly,
+      path: authTokenCookieOptions.path,
+      sameSite: authTokenCookieOptions.sameSite,
+      secure: authTokenCookieOptions.secure,
     });
 
     res.status(200).json({
@@ -101,7 +106,7 @@ const changeProfilePassword = async (req, res, next) => {
 
 module.exports = {
   getProfile,
-  getUniqueProfile,
   profileEdit,
   changeProfilePassword,
+  getUniqueProfile,
 };
