@@ -3,21 +3,37 @@ const {
   getAcceptedReceivedRequests,
   getFeedService,
 } = require("../services/connectionRequestService");
-const { NotFoundError } = require("../utils/errors");
+const { parsePagination } = require("../utils/pagination");
+const { serializeUser } = require("../utils/userSerializer");
+
+const toObject = (value) =>
+  typeof value?.toObject === "function" ? value.toObject() : value;
+
+const serializePendingRequest = (request) => {
+  const source = toObject(request);
+  if (!source?.senderUserId) return null;
+
+  return {
+    _id: source._id?.toString(),
+    status: source.status,
+    senderUserId: serializeUser(source.senderUserId),
+    receiverUserId: source.receiverUserId?.toString(),
+    createdAt: source.createdAt,
+    updatedAt: source.updatedAt,
+  };
+};
 
 const showAllReceivedRequests = async (req, res, next) => {
   try {
     const connections = await getPendingReceivedRequests(req.user._id);
+    const results = connections.map(serializePendingRequest).filter(Boolean);
 
-    if (!connections.length) {
-      throw new NotFoundError("No pending requests found");
-    }
-
+    // WHY: an empty collection is a successful query, not a missing resource.
     res.status(200).json({
       success: true,
       message: "Fetched pending requests successfully.",
-      count: connections.length,
-      results: connections,
+      count: results.length,
+      results,
     });
   } catch (error) {
     next(error);
@@ -26,24 +42,26 @@ const showAllReceivedRequests = async (req, res, next) => {
 
 const showAllAcceptedRequests = async (req, res, next) => {
   try {
-    const loggedInUser = req.user._id;
-    const connections = await getAcceptedReceivedRequests(loggedInUser);
+    const loggedInUserId = req.user._id.toString();
+    const connections = await getAcceptedReceivedRequests(loggedInUserId);
 
-    if (!connections.length) {
-      throw new NotFoundError("No accepted requests found");
-    }
-
-    const result = connections.map((row) =>
-      row.senderUserId._id.toString() === loggedInUser.toString()
-        ? row.receiverUserId
-        : row.senderUserId,
-    );
+    const data = connections
+      .map(toObject)
+      .map((connection) => {
+        const sender = connection?.senderUserId;
+        const receiver = connection?.receiverUserId;
+        if (!sender || !receiver) return null;
+        const otherUser =
+          sender._id.toString() === loggedInUserId ? receiver : sender;
+        return serializeUser(otherUser);
+      })
+      .filter(Boolean);
 
     res.status(200).json({
       success: true,
       message: "Fetched accepted connections successfully.",
-      count: connections.length,
-      data: result,
+      count: data.length,
+      data,
     });
   } catch (error) {
     next(error);
@@ -52,24 +70,25 @@ const showAllAcceptedRequests = async (req, res, next) => {
 
 const feed = async (req, res, next) => {
   try {
-    const userId = req.user._id;
-    const page = Math.max(parseInt(req.query.page) || 1, 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 50);
-    const skip = (page - 1) * limit;
-
-    const { users, hasNextPage } = await getFeedService(userId, limit, skip);
+    const { page, limit, skip } = parsePagination(req.query);
+    const { users, hasNextPage } = await getFeedService(
+      req.user._id,
+      limit,
+      skip,
+    );
+    const data = users.map((user) => serializeUser(user));
 
     res.status(200).json({
       success: true,
       page,
       limit,
-      results: users.length,
+      results: data.length,
       hasNextPage,
-      data: users,
+      data,
     });
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = { showAllReceivedRequests, showAllAcceptedRequests, feed };
+module.exports = { feed, showAllAcceptedRequests, showAllReceivedRequests };

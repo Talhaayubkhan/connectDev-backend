@@ -1,23 +1,78 @@
+const mongoose = require("mongoose");
 const app = require("./app");
 const connectDB = require("./config/database");
+const { getRuntimeConfig } = require("./config/env");
 
-const PORT = process.env.PORT || 3000;
+let activeServer;
+let shutdownPromise;
 
-// CHANGED: removed http.createServer(app) + initSocket(server).
-// That setup only existed to attach socket.io to the raw HTTP server.
-// Since chat/sockets are removed, app.listen() directly is simpler —
-// Express's app.listen() creates its own HTTP server internally anyway.
-connectDB()
-  .then(() => {
-    console.log("Database Connected Successfully!");
-
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  })
-  .catch((error) => {
-    // CHANGED: log the actual error, not just a generic message.
-    // Before, if connectDB() failed, you'd have no idea WHY —
-    // wrong URI? Auth failure? Network issue? All looked identical.
-    console.error("Database connection failed!", error.message);
+const listen = (application, port) =>
+  new Promise((resolve, reject) => {
+    const server = application.listen(port, () => resolve(server));
+    server.once?.("error", reject);
   });
+
+const startServer = async ({ config = getRuntimeConfig() } = {}) => {
+  await connectDB(config.mongoUrl);
+  activeServer = await listen(app, config.port);
+  console.log(`Server running on port ${config.port}`);
+  return activeServer;
+};
+
+const closeHttpServer = (server) =>
+  new Promise((resolve, reject) => {
+    if (!server) return resolve();
+    return server.close((error) => (error ? reject(error) : resolve()));
+  });
+
+const shutdown = async (signal) => {
+  if (shutdownPromise) return shutdownPromise;
+
+  shutdownPromise = (async () => {
+    if (signal) console.log(`Received ${signal}. Shutting down safely.`);
+    await closeHttpServer(activeServer);
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.connection.close();
+    }
+    activeServer = undefined;
+  })();
+
+  try {
+    await shutdownPromise;
+  } finally {
+    shutdownPromise = undefined;
+  }
+};
+
+const registerProcessHandlers = () => {
+  for (const signal of ["SIGINT", "SIGTERM"]) {
+    process.once(signal, async () => {
+      try {
+        await shutdown(signal);
+      } catch (error) {
+        console.error("Graceful shutdown failed.", error);
+        process.exitCode = 1;
+      }
+    });
+  }
+
+  process.once("unhandledRejection", async (error) => {
+    console.error("Unhandled promise rejection.", error);
+    process.exitCode = 1;
+    try {
+      await shutdown("unhandledRejection");
+    } catch (shutdownError) {
+      console.error("Shutdown after rejection failed.", shutdownError);
+    }
+  });
+};
+
+if (require.main === module) {
+  registerProcessHandlers();
+  startServer().catch((error) => {
+    console.error("Server startup failed.", error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { registerProcessHandlers, shutdown, startServer };

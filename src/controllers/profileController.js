@@ -3,31 +3,12 @@ const {
   changeUserPassword,
   uniqueProfileService,
 } = require("../services/profileService");
-const {
-  buildSafeUser,
-  authTokenCookieOptions,
-} = require("../utils/constants");
-const { ValidationError } = require("../utils/errors");
+const { authTokenCookieOptions } = require("../utils/constants");
+const { serializeUser } = require("../utils/userSerializer");
 
 const getProfile = async (req, res, next) => {
   try {
-    // WHITELIST approach: Explicitly pick safe fields
-    const user = req.user.toObject();
-
-    const safeUser = {
-      _id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      photoURL: user.photoURL,
-      about: user.about,
-      skills: user.skills,
-      age: user.age,
-      gender: user.gender,
-      location: user.location,
-      occupation: user.occupation,
-      isActive: user.isActive,
-      createdAt: user.createdAt,
-    };
+    const safeUser = serializeUser(req.user, { includeEmail: true });
 
     res.status(200).json({
       success: true,
@@ -43,15 +24,12 @@ const getUniqueProfile = async (req, res, next) => {
     const { userId } = req.params;
     const currentUserId = req.user._id.toString();
 
-    // WHY pass currentUserId explicitly from req.user._id here?
-    // The controller's job is to extract HTTP concerns (req, res) and hand off
-    // clean values to the service. The service should never touch req/res —
-    // that keeps it testable without spinning up an Express server.
     const user = await uniqueProfileService(userId, currentUserId);
+    const safeUser = serializeUser(user);
 
     res.status(200).json({
       success: true,
-      data: user,
+      data: safeUser,
     });
   } catch (error) {
     next(error);
@@ -62,8 +40,7 @@ const profileEdit = async (req, res, next) => {
   try {
     const updatedUser = await updateProfileService(req.body, req.user);
 
-    // Create consistent whitelist (same as login)
-    const safeUser = buildSafeUser(updatedUser);
+    const safeUser = serializeUser(updatedUser, { includeEmail: true });
 
     res.status(200).json({
       success: true,
@@ -78,13 +55,6 @@ const profileEdit = async (req, res, next) => {
 const changeProfilePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
-
-    // WHY removed createPasswordDTO?
-    // It was just destructuring two fields — unnecessary abstraction.
-    // Direct destructuring is cleaner and easier to read.
-    if (!currentPassword || !newPassword) {
-      throw new ValidationError("Both passwords are required.");
-    }
 
     await changeUserPassword(req.user._id, currentPassword, newPassword);
 
