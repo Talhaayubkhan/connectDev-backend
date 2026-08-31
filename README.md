@@ -1,209 +1,207 @@
-# connectDev — Backend API
+# ConnectDev Backend
 
-REST API and real-time layer for **connectDev**, a developer networking platform where people can discover profiles, send connection requests, build a contact list, and chat in real time.
+Production-oriented REST API for [ConnectDev](https://github.com/Talhaayubkhan/connectDev-frontend), a developer networking web application. This repository owns authentication, profiles, connection requests, discovery, and password recovery. The React frontend lives in a separate repository and consumes this API with credentialed requests.
 
-> This repository contains only the Node.js backend. See the frontend repo for the client-side code.
+## Features
 
-## What this backend does
+- Cookie-based JWT authentication with session revocation
+- Signup, login, logout, forgot-password, and reset-password flows
+- Current-user profile editing and connection-only public profiles
+- Connection request creation, review, received requests, and accepted connections
+- Paginated developer discovery feed
+- Case-insensitive skill cleanup and strict profile validation
+- Recent activity derived from `lastSeen`
+- Helmet security headers, controlled CORS, request-size limits, and rate limiting
+- Consistent JSON errors, graceful shutdown, and a health endpoint
+- Jest unit, integration, and frontend-contract tests
 
-- **Auth** — Sign up, login (JWT in httpOnly cookie), logout, forgot/reset password via email
-- **Profiles** — View and edit your own profile; view another user's public profile
-- **Connections** — Send requests (`interested` / `ignored`); accept or reject incoming requests
-- **Discovery** — Feed of suggested users; lists of received requests and accepted connections
-- **Chat** — REST endpoints for chat list, opening a thread, and paginated message history; live messaging over Socket.IO
+Chat, messaging, Socket.IO, and AI features are not implemented in this repository.
 
-## Tech Stack
+## Requirements
 
-- **Runtime:** Node.js (LTS)
-- **Framework:** Express 5
-- **Database:** MongoDB via Mongoose 9
-- **Auth:** JWT (cookie + Socket handshake), bcrypt, `tokenVersion` for session invalidation
-- **Email:** Nodemailer (Gmail) for password reset
-- **Real-time:** Socket.IO 4 — shares the same HTTP server as Express
-- **Utilities:** `cookie-parser`, `cors`, `express-rate-limit`, `validator`
+- Node.js 22 or newer
+- npm
+- MongoDB
+- A Gmail account with an app password if password-reset email is enabled
 
-## Prerequisites
-
-- Node.js (LTS recommended)
-- A running MongoDB instance and its connection string
-- A Gmail account + app password for the password reset email flow
-- A frontend that shares the CORS origin and sends credentials for cookie-based auth (see [CORS section](#cors-and-frontend))
-
-## Environment Variables
-
-Create a `.env` file in the project root (same folder as `package.json`):
-
-| Variable | Required | Purpose |
-|----------|----------|---------|
-| `MONGODB_URL` | Yes | MongoDB connection string |
-| `JWT_SECRET` | Yes | Secret for signing and verifying JWTs |
-| `PORT` | No | HTTP port (default `3000`) |
-| `EMAIL_USER` | For reset flow | Gmail address used by Nodemailer |
-| `EMAIL_PASS` | For reset flow | Gmail app password (or SMTP secret) |
-| `FRONTEND_URL` | For reset flow | Base URL of the frontend; injected into the password reset link |
-
-> **Never commit your `.env` file.** Make sure it is listed in `.gitignore`.
-
-## Install and Run
+## Quick Start
 
 ```bash
-npm install
-```
-
-**Development** — uses `nodemon` for auto-restart on file changes:
-
-```bash
+git clone https://github.com/Talhaayubkhan/connectDev-backend.git
+cd connectDev-backend
+npm ci
+cp .env.example .env
 npm run dev
 ```
 
-**Production:**
+On Windows PowerShell, replace the copy command with:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+The API listens on `http://localhost:3000` by default. Check it with:
 
 ```bash
-npm start
+curl http://localhost:3000/health
 ```
 
-The server connects to MongoDB first; on success it starts listening on `PORT` and initializes Socket.IO on the same HTTP server.
+Expected response:
 
-> **Note:** This project is currently in active development and not yet deployed to production. The `npm start` script is available but no production environment has been configured yet.
-
-## HTTP API Overview
-
-All protected routes require a valid `token` httpOnly cookie set at login.
-
-### Auth — `src/routes/authRouter.js`
-
-| Method | Path | Auth | Notes |
-|--------|------|------|-------|
-| `POST` | `/auth/signup` | No | Register a new user |
-| `POST` | `/auth/login` | No | Sets JWT cookie; rate-limited (5 req / 15 min) |
-| `POST` | `/auth/logout` | No | Clears the cookie |
-| `POST` | `/auth/forgot-password` | No | Sends reset email if user exists; rate-limited (3 req / 15 min) |
-| `PATCH` | `/auth/reset-password` | No | Body: reset token + new password (validated) |
-
-### Profile — `src/routes/profileRouter.js`
-
-| Method | Path | Auth |
-|--------|------|------|
-| `GET` | `/profile/view` | Yes — current user's profile |
-| `GET` | `/profile/:userId` | Yes — another user's public profile |
-| `PATCH` | `/profile/edit` | Yes |
-| `PATCH` | `/profile/changePassword` | Yes |
-
-### Connection Requests — `src/routes/connectionRequestRoutes.js`
-
-| Method | Path | Auth | Status segment |
-|--------|------|------|----------------|
-| `POST` | `/request/send/:status/:toUserId` | Yes | `interested` or `ignored` |
-| `POST` | `/request/review/:status/:requestId` | Yes | `accepted` or `rejected` |
-
-Statuses are validated by `src/middlewares/statusValidation.js`.
-
-### User Feed and Lists — `src/routes/userRouter.js`
-
-| Method | Path | Auth |
-|--------|------|------|
-| `GET` | `/user/requests/received` | Yes |
-| `GET` | `/user/connections` | Yes |
-| `GET` | `/user/feed` | Yes |
-
-### Chat (REST) — `src/routes/chatRouter.js`
-
-| Method | Path | Auth |
-|--------|------|------|
-| `GET` | `/chats` | Yes — sidebar: all chats with last message preview |
-| `GET` | `/chats/user/:targetUserId` | Yes — get or create a 1:1 chat thread + recent messages |
-| `GET` | `/chats/:chatId/messages` | Yes — paginated message history |
-
-## Socket.IO — Real-time Chat
-
-Configured in `src/utils/socket.js` and attached in `src/server.js`.
-
-**Authentication**
-
-The client must pass a JWT in the Socket.IO handshake:
-
-```js
-{ auth: { token: "<jwt>" } }
+```json
+{
+  "success": true,
+  "status": "ok"
+}
 ```
 
-The token is verified with `JWT_SECRET` before the connection is accepted.
+## Environment Variables
 
-**Events**
+Copy [.env.example](.env.example) and replace its placeholders. Startup fails early when required configuration is missing or invalid.
 
-| Event | Direction | Payload | Behavior |
-|-------|-----------|---------|----------|
-| `joinChat` | Client → Server | `{ receiverId }` | Joins a deterministic room derived from both user IDs |
-| `sendMessage` | Client → Server | `{ receiverId, text, senderFirstName }` | Persists message, updates `lastMessage`, emits `messageReceived` to the room |
-| `messageReceived` | Server → Client | Message object | Delivered to all participants in the chat room |
+| Variable | Required | Description |
+| --- | --- | --- |
+| `NODE_ENV` | No | `development`, `test`, or `production`. Defaults to `development`. |
+| `PORT` | No | HTTP port from 1 to 65535. Defaults to `3000`. |
+| `MONGODB_URL` | Yes | MongoDB connection URI. |
+| `JWT_SECRET` | Yes | JWT signing secret with at least 32 characters. |
+| `FRONTEND_URL` | Production | Comma-separated allowed frontend origins. The first origin is used in reset links. Development defaults to `http://localhost:5173`. |
+| `EMAIL_USER` | Reset email | Gmail address used to send password-reset messages. |
+| `EMAIL_PASS` | Reset email | Gmail app password. |
+| `COOKIE_SAME_SITE` | No | `lax`, `strict`, or `none`. Defaults to `lax` outside production and `none` in production. |
+| `COOKIE_SECURE` | No | `true` or `false`. Defaults to `true` in production. Must be `true` when SameSite is `none`. |
 
-Room IDs are generated by `generateChatRoomId` in `src/utils/constants.js`.
-
-## Project Structure
-
-```
-connectDev-backend/
-├── package.json
-└── src/
-    ├── server.js                  # Entry point — HTTP server, DB connect, Socket.IO init
-    ├── app.js                     # Express app: middleware, routers, central error handler
-    ├── config/
-    │   └── database.js            # Mongoose connect (reads MONGODB_URL)
-    ├── models/
-    │   ├── userSchema.js          # User model — password hashing + JWT helper methods
-    │   ├── connectionSchema.js    # Connection requests — unique sender/receiver pair
-    │   ├── chatSchema.js          # 1:1 chats — sorted participants + indexes
-    │   └── messageSchema.js       # Messages — linked to chat and sender
-    ├── routes/                    # URL → controller wiring
-    ├── controllers/               # HTTP handlers — validate input, call services, respond
-    ├── services/                  # Business logic and DB operations
-    ├── middlewares/
-    │   ├── auth.js                # Cookie JWT verification, user load, tokenVersion check, throttled lastSeen
-    │   ├── errorHandler.js        # Central error handler — returns { success, message }; hides internals
-    │   └── statusValidation.js    # Validates connection request status values
-    └── utils/
-        ├── constants.js           # CORS config, chat room ID helper, populate field lists
-        ├── validation.js          # Shared input validation helpers
-        ├── rateLimiting.js        # Login and forgot-password rate limiters
-        ├── socket.js              # Socket.IO auth middleware + chat event handlers
-        ├── changePasswordDTO.js
-        ├── email/
-        │   ├── sendEmail.js       # Nodemailer transport
-        │   └── resetPasswordTemplate.js
-        └── errors/                # AppError, AuthError, ValidationError, etc.
-```
-
-**Request flow:** `routes` → `controllers` → `services` → Mongoose `models`. All errors bubble up to `errorHandler` for a consistent `{ success, message }` JSON response.
-
-## Data Model
-
-| Model | Key fields |
-|-------|-----------|
-| **User** | Profile fields, `tokenVersion` (increment to invalidate all sessions), optional `resetPasswordToken` / `resetPasswordExpires`, `lastSeen`, `isActive` |
-| **ConnectionRequest** | `senderUserId`, `receiverUserId`, `status` (`interested` / `accepted` / `rejected` / `ignored`), unique sender+receiver pair |
-| **Chat** | Two `participants`, optional `lastMessage` ref |
-| **Message** | `chat`, `sender`, `text` (max 2000 chars) |
-
-## CORS and Frontend
-
-CORS is configured in `src/utils/constants.js` with `origin: http://localhost:5173` and `credentials: true` so the browser includes cookies on every request.
-
-> **Before deploying:** change the `origin` value to your production frontend URL, or derive it from `process.env.FRONTEND_URL`. The same CORS config is applied to both Express and Socket.IO.
+Never commit `.env`, database credentials, JWT secrets, or email app passwords.
 
 ## Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm start` | `node src/server.js` |
-| `npm run dev` | `nodemon src/server.js` |
+| Command | Purpose |
+| --- | --- |
+| `npm start` | Start the production entry point. |
+| `npm run dev` | Start with Nodemon file watching. |
+| `npm run lint` | Run ESLint. |
+| `npm test` | Run the Jest suite serially. |
+| `npm run test:watch` | Run Jest in watch mode. |
+| `npm run test:coverage` | Generate a coverage report. |
+| `npm run check:syntax` | Parse-check every JavaScript file on Windows, macOS, or Linux. |
+| `npm run check` | Run lint, tests, and syntax checks. |
 
-## Related
+## API
 
-[Frontend Repository](../connectDev-frontend) — React / Vite client
+Successful responses use `success: true`. Failures use this stable shape:
 
-## Author
+```json
+{
+  "success": false,
+  "message": "A safe error message."
+}
+```
 
-**Talha Ayub**
+Protected routes require the HTTP-only `token` cookie created by login. Browser clients must enable credentials on requests.
+
+### Service
+
+| Method | Route | Authentication | Notes |
+| --- | --- | --- | --- |
+| `GET` | `/health` | No | Process health response. |
+
+### Authentication
+
+| Method | Route | Authentication | Request body |
+| --- | --- | --- | --- |
+| `POST` | `/auth/signup` | No | `firstName`, optional `lastName`, `email`, `password`, `confirmPassword` |
+| `POST` | `/auth/login` | No | `email`, `password` |
+| `POST` | `/auth/logout` | No | None |
+| `POST` | `/auth/forgot-password` | No | `email` |
+| `PATCH` | `/auth/reset-password` | No | `token`, `newPassword`, `confirmPassword` |
+
+Login allows five failed attempts per 15-minute window, and successful logins are not counted. Forgot-password allows three requests per 15-minute window because successful requests still trigger email delivery.
+
+Forgot-password always returns the same public success message whether an account exists or not. Reset tokens expire after 15 minutes and are stored only as hashes.
+
+### Profiles
+
+| Method | Route | Authentication | Notes |
+| --- | --- | --- | --- |
+| `GET` | `/profile/view` | Yes | Current profile, including email. |
+| `GET` | `/profile/:userId` | Yes | Public profile for self or an accepted connection. Email is excluded. |
+| `PATCH` | `/profile/edit` | Yes | Updates allowed profile fields only. |
+| `PATCH` | `/profile/changePassword` | Yes | Body: `currentPassword`, `newPassword`. Clears the active cookie after success. |
+
+Editable profile fields are `firstName`, `lastName`, `gender`, `age`, `about`, `skills`, `photoURL`, `location`, and `occupation`. Unknown fields and empty update objects are rejected.
+
+### Connection Requests
+
+| Method | Route | Authentication | Allowed status |
+| --- | --- | --- | --- |
+| `POST` | `/request/send/:status/:toUserId` | Yes | `interested`, `ignored` |
+| `POST` | `/request/review/:status/:requestId` | Yes | `accepted`, `rejected` |
+
+Self requests and duplicate relationships in either direction are rejected. Only the intended receiver can review a pending request.
+
+### User Lists and Feed
+
+| Method | Route | Authentication | Response collection |
+| --- | --- | --- | --- |
+| `GET` | `/user/requests/received` | Yes | `results` |
+| `GET` | `/user/connections` | Yes | `data` |
+| `GET` | `/user/feed?page=1&limit=10` | Yes | `data`, plus `page`, `limit`, `hasNextPage` |
+
+Empty collections return HTTP 200 with an empty array. Feed `page` and `limit` must be positive whole numbers, and `limit` cannot exceed 50.
+
+## Response Privacy
+
+User responses are built through a single allowlist serializer. Password hashes, reset tokens, token versions, and internal fields are never copied into API responses. Public users include both `_id` and `id` for frontend compatibility, and current-user responses additionally include email.
+
+`isActive` is calculated from a `lastSeen` value within the previous five minutes. It is not stored as a permanently true database flag.
+
+## Architecture
+
+```text
+src/
+├── app.js                         Express middleware and routes
+├── server.js                      Database-first startup and shutdown
+├── config/                        Environment and MongoDB configuration
+├── routes/                        Endpoint and middleware wiring
+├── controllers/                   HTTP request and response handling
+├── services/                      Business rules and database operations
+├── models/                        Mongoose schemas and indexes
+├── middlewares/                   Authentication, status, 404, and errors
+└── utils/                         Validation, serialization, pagination, email
+
+tests/
+├── unit/                          Isolated behavior and edge cases
+├── integration/                   Express route and middleware behavior
+└── contract/                      Backend fields required by the frontend
+```
+
+The main request flow is route to controller to service to model. Errors pass to one JSON error handler. Expected operational errors keep their safe messages, while unexpected failures are logged server-side and return a generic message.
+
+## Security Notes
+
+- JWTs are stored in HTTP-only cookies and expire after seven days.
+- Changing or resetting a password increments `tokenVersion`, invalidating older sessions.
+- Passwords are never trimmed because whitespace can be part of the chosen secret.
+- CORS accepts only configured origins and still permits clients without an `Origin` header.
+- JSON bodies are limited to 100 KB.
+- Helmet supplies defensive HTTP headers and Express identification is disabled.
+- MongoDB validation, malformed JSON, invalid IDs, duplicate keys, and oversized bodies receive controlled responses.
+- Shutdown stops accepting new HTTP requests before closing Mongoose.
+
+Use HTTPS in production. For a frontend and API on different sites, use `COOKIE_SAME_SITE=none` with `COOKIE_SECURE=true`.
+
+## Quality and CI
+
+Run the complete local gate before opening a pull request:
+
+```bash
+npm ci
+npm run check
+npm audit --omit=dev --audit-level=high
+```
+
+GitHub Actions runs the same checks on pushes to `main` and on pull requests.
 
 ## License
 
-ISC — see `package.json`
+ISC
