@@ -1,23 +1,34 @@
 const nodemailer = require("nodemailer");
+const { getRuntimeConfig } = require("../../config/env");
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+let cachedTransporter;
+let cachedCredentials;
+
+const getTransporter = (emailUser, emailPass) => {
+  const credentials = `${emailUser}\u0000${emailPass}`;
+  if (!cachedTransporter || cachedCredentials !== credentials) {
+    cachedTransporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: emailUser, pass: emailPass },
+    });
+    cachedCredentials = credentials;
+  }
+  return cachedTransporter;
+};
 
 const sendEmail = async (to, subject, { text, html }) => {
-  const info = await transporter.sendMail({
-    from: `"Connect Dev" <${process.env.EMAIL_USER}>`,
+  const { emailUser, emailPass } = getRuntimeConfig();
+  if (!emailUser || !emailPass) {
+    throw new Error("EMAIL_USER and EMAIL_PASS are required to send email.");
+  }
+
+  return getTransporter(emailUser, emailPass).sendMail({
+    from: `"ConnectDev" <${emailUser}>`,
     to,
     subject,
     text,
     html,
   });
-
-  return info;
 };
 
 module.exports = sendEmail;

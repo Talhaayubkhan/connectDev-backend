@@ -1,33 +1,49 @@
-const errorHandler = (err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
+const {
+  ConflictError,
+  PayloadTooLargeError,
+  ValidationError,
+} = require("../utils/errors");
 
-  // WHY log only 500s?
-  // 400, 401, 404 = expected errors — no need to log.
-  // 500 = unexpected crash — always log with full stack trace.
-  // In production you'd send this to a service like Sentry.
-  if (statusCode >= 500) {
-    console.error(`[${new Date().toISOString()}] ${err.name}: ${err.message}`);
-    console.error(err.stack);
+const firstMongooseMessage = (error) =>
+  Object.values(error.errors || {}).find((item) => item?.message)?.message ||
+  "Invalid input. Please check your data.";
+
+const normalizeError = (error) => {
+  if (error.isOperational) return error;
+  if (error.type === "entity.parse.failed") {
+    return new ValidationError("Malformed JSON body.");
+  }
+  if (error.type === "entity.too.large") {
+    return new PayloadTooLargeError();
+  }
+  if (error.name === "CastError") {
+    return new ValidationError("Invalid resource ID.");
+  }
+  if (error.name === "ValidationError") {
+    return new ValidationError(firstMongooseMessage(error));
+  }
+  if (error.code === 11000) {
+    return new ConflictError("Resource already exists.");
   }
 
-  // WHY isOperational check?
-  // isOperational = true  → we threw this intentionally (AuthError, ValidationError etc)
-  //                       → safe to senad actual message to client
-  // isOperational = false → unexpected crash or bug
-  //                       → NEVER send internal details to client (security risk)
-  //                       → send generic message instead
-  const message = err.isOperational
-    ? err.message
+  return error;
+};
+
+const errorHandler = (rawError, _req, res, _next) => {
+  const error = normalizeError(rawError);
+  const statusCode = error.statusCode || 500;
+
+  if (statusCode >= 500) {
+    console.error(`[${new Date().toISOString()}] ${rawError.stack || rawError}`);
+  }
+
+  // WHY: unexpected messages can expose database, file, or authentication details.
+  const message = error.isOperational
+    ? error.message
     : "Something went wrong. Please try again.";
 
-  // WHY return here?
-  // Stops function after sending response.
-  // Before: next() was called after res.json() — wrong.
-  // Response is already sent — next() after it causes "headers already sent" error.
-  return res.status(statusCode).json({
-    success: false,
-    message,
-  });
+  return res.status(statusCode).json({ success: false, message });
 };
 
 module.exports = errorHandler;
+module.exports.normalizeError = normalizeError;

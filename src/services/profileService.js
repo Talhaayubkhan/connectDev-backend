@@ -1,4 +1,3 @@
-const { ObjectId } = require("mongodb");
 const User = require("../models/userSchema");
 const Connection = require("../models/connectionSchema");
 const {
@@ -9,13 +8,15 @@ const {
 const {
   validateProfileData,
   validatePasswordChange,
+  requireObjectId,
 } = require("../utils/validation");
 const { SENDER_FIELDS } = require("../utils/constants");
 
 const uniqueProfileService = async (userId, currentUserId) => {
-  if (!ObjectId.isValid(userId)) {
-    throw new NotFoundError("User not found");
-  }
+  requireObjectId(userId, "user ID");
+
+  const user = await User.findById(userId).select(SENDER_FIELDS.join(" "));
+  if (!user) throw new NotFoundError("User not found.");
 
   const isSelf = currentUserId.toString() === userId.toString();
 
@@ -36,33 +37,27 @@ const uniqueProfileService = async (userId, currentUserId) => {
     });
 
     if (!isConnected) {
-      throw new ForbiddenError("You can only view profiles of connections");
+      throw new ForbiddenError("You can only view profiles of connections.");
     }
-  }
-  const user = await User.findById(userId).select(SENDER_FIELDS);
-
-  if (!user) {
-    throw new NotFoundError("User not found");
   }
 
   return user;
 };
 
 const updateProfileService = async (bodyData, presentUser) => {
-  validateProfileData(bodyData);
+  const sanitized = validateProfileData(bodyData);
 
-  Object.keys(bodyData).forEach((field) => {
-    presentUser[field] = bodyData[field];
-  });
+  for (const [field, value] of Object.entries(sanitized)) {
+    if (typeof presentUser.set === "function") presentUser.set(field, value);
+    else presentUser[field] = value;
+  }
 
   await presentUser.save();
   return presentUser;
 };
 
 const changeUserPassword = async (userId, currentPassword, newPassword) => {
-  if (!currentPassword || !newPassword) {
-    throw new ValidationError("Both passwords are required.");
-  }
+  validatePasswordChange(currentPassword, newPassword);
 
   const user = await User.findById(userId);
   if (!user) throw new NotFoundError("User not found.");
@@ -70,19 +65,14 @@ const changeUserPassword = async (userId, currentPassword, newPassword) => {
   const isMatch = await user.validatePassword(currentPassword);
   if (!isMatch) throw new ValidationError("Current password is incorrect.");
 
-  // WHY validate format before checking sameness?
-  // If new password fails format validation, no point checking sameness.
-  // Validate first → then check business rules.
-  validatePasswordChange(newPassword);
-
   const isSame = await user.validatePassword(newPassword);
   if (isSame)
     throw new ValidationError(
-      "New password cannot be same as current password.",
+      "New password cannot be the same as current password.",
     );
 
   user.password = newPassword;
-  user.tokenVersion += 1;
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
   await user.save();
   return true;
 };

@@ -62,7 +62,13 @@ const userSchema = new Schema(
       },
     },
     skills: {
-      type: [String],
+      type: [
+        {
+          type: String,
+          trim: true,
+          maxlength: 30,
+        },
+      ],
       default: [],
       validate(value) {
         if (value.length > 15) {
@@ -72,7 +78,7 @@ const userSchema = new Schema(
     },
     about: {
       type: String,
-      maxlength: 500,
+      maxlength: 300,
       default: "Hey there! I am using ConnectDev.",
       trim: true,
     },
@@ -87,10 +93,6 @@ const userSchema = new Schema(
       maxlength: 100,
     },
 
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
     tokenVersion: {
       type: Number,
       default: 0,

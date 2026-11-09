@@ -1,5 +1,9 @@
-node_modules
-
-
-# Environment Variables
+node_modules/
 .env
+.env.*
+!.env.example
+coverage/
+*.log
+.DS_Store
+.idea/
+.vscode/

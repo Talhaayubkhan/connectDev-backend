@@ -3,13 +3,15 @@ const User = require("../models/userSchema");
 const { ValidationError, ConflictError } = require("../utils/errors");
 const {
   validateSignupData,
-  validateResetPassword,
+  validateLoginInput,
+  validateNewPassword,
+  validateResetToken,
 } = require("../utils/validation");
+const { getRuntimeConfig } = require("../config/env");
 const sendEmail = require("../utils/email/sendEmail");
 const resetPasswordTemplate = require("../utils/email/resetPasswordTemplate");
-const { validateLoginInput, buildSafeUser } = require("../utils/constants");
+const { serializeUser } = require("../utils/userSerializer");
 const signupService = async (userData) => {
-  // validateSignupData throws ValidationError if input is bad; we don't duplicate those checks here.
   const { firstName, lastName, email, password } = validateSignupData(userData);
 
   const existingUser = await User.findOne({ email });
@@ -18,48 +20,35 @@ const signupService = async (userData) => {
   const user = new User({ firstName, lastName, email, password });
   await user.save();
 
-  // Return only safe, public fields — never send password hash or internal flags to the client.
-  return {
-    id: user._id,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email,
-  };
+  return serializeUser(user, { includeEmail: true });
 };
 
 const loginService = async (email, password) => {
-  // Keep normalization + validation in one place for easier maintenance.
-  const { normalizedEmail, normalizedPassword } = validateLoginInput(
+  const { normalizedEmail, password: validatedPassword } = validateLoginInput(
     email,
     password,
   );
   const user = await User.findOne({ email: normalizedEmail });
 
-  // WHY same message for both cases?
-  // Security: don't reveal whether email exists
+  // WHY: one message prevents account discovery through login responses.
   if (!user) throw new ValidationError("Invalid email or password.");
 
-  const isMatch = await user.validatePassword(normalizedPassword);
+  const isMatch = await user.validatePassword(validatedPassword);
   if (!isMatch) throw new ValidationError("Invalid email or password.");
 
   const token = await user.getSignJWT();
 
-  // Single serializer avoids drift of API response fields across auth flows.
-  const safeUser = buildSafeUser(user);
+  const safeUser = serializeUser(user, { includeEmail: true });
 
   return { user: safeUser, token };
 };
 
 const forgotPasswordService = async (email) => {
-  // Email is already normalized in the controller (validateForgotPasswordEmail). Same string shape as in the DB.
   const user = await User.findOne({ email });
-  // WHY return silently?
-  // Don't reveal whether email exists — security best practice
+  // WHY: silent success prevents password reset from becoming an account lookup.
   if (!user) return;
 
   if (user.resetPasswordExpires && user.resetPasswordExpires > Date.now()) {
-    // Security hardening: always return success from this flow so attackers cannot
-    // infer account existence/timing behavior by observing different responses.
     return;
   }
 
@@ -70,24 +59,27 @@ const forgotPasswordService = async (email) => {
   user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
   await user.save();
 
-  // WHY query param not path param?
-  // Frontend uses useSearchParams() — reads ?token=...
-  // Path param (/reset-password/:token) would cause 404
-  const resetURL = `${process.env.FRONTEND_URL}/auth/reset-password?token=${token}`;
-  // console.log(`Reset URL for ${email}: ${resetURL}`); // Log for testing
+  const { frontendOrigins } = getRuntimeConfig();
+  const resetURL = `${frontendOrigins[0]}/auth/reset-password?token=${token}`;
 
-  await sendEmail(user.email, "Reset your password", {
-    text: `Reset your password: ${resetURL}`,
-    html: resetPasswordTemplate(resetURL),
-  });
+  try {
+    await sendEmail(user.email, "Reset your password", {
+      text: `Reset your password: ${resetURL}`,
+      html: resetPasswordTemplate(resetURL),
+    });
+  } catch (error) {
+    // WHY: failed delivery must not block another reset attempt for 15 minutes.
+    await User.updateOne(
+      { _id: user._id, resetPasswordToken: hashedToken },
+      { $unset: { resetPasswordToken: 1, resetPasswordExpires: 1 } },
+    );
+    throw error;
+  }
 };
 
-const resetPasswordService = async (token, newPassword, confirmPassword) => {
-  if (!token) throw new ValidationError("Reset token is required.");
-
-  // Check password rules before hitting the database: cheaper and avoids work when input is obviously wrong.
-  // (Controller already validates for HTTP; we repeat here so this service stays correct if another caller is added later.)
-  validateResetPassword(newPassword, confirmPassword);
+const resetPasswordService = async (token, newPassword) => {
+  validateResetToken(token);
+  validateNewPassword(newPassword);
 
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
@@ -96,14 +88,13 @@ const resetPasswordService = async (token, newPassword, confirmPassword) => {
     resetPasswordExpires: { $gt: Date.now() },
   });
 
-  // WHY vague message?
-  // Don't tell attacker whether token is invalid vs expired
+  // WHY: one message avoids revealing whether a token existed but expired.
   if (!user) throw new ValidationError("Reset link is invalid or has expired.");
 
   user.password = newPassword;
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
-  user.tokenVersion += 1; // invalidate all existing sessions
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
   await user.save();
 };
 

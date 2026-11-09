@@ -30,8 +30,7 @@ const userLogin = async (req, res, next) => {
     const { email, password } = req.body;
     const { user, token } = await loginService(email, password);
 
-    // Store JWT in an httpOnly cookie (see authTokenCookieOptions above).
-    // Alternative is returning the token in JSON and using localStorage — easier for SPAs, but any XSS can steal it; httpOnly cookies are a common tradeoff.
+    // WHY: an HTTP-only cookie keeps the JWT unavailable to browser scripts.
     res.cookie("token", token, authTokenCookieOptions);
 
     res.status(200).json({
@@ -45,7 +44,7 @@ const userLogin = async (req, res, next) => {
 };
 
 const userLogout = (req, res) => {
-  // Pass the same flags as res.cookie(...), otherwise some browsers keep the old cookie.
+  // WHY: cookie identity flags must match or browsers may keep the old session.
   res.clearCookie("token", {
     httpOnly: authTokenCookieOptions.httpOnly,
     path: authTokenCookieOptions.path,
@@ -58,8 +57,6 @@ const userLogout = (req, res) => {
 const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
-    // WHY validate email presence here not in service?
-    // Controller = validate request. Service = business logic.
     const validatedEmail = validateForgotPasswordEmail(email);
 
     await forgotPasswordService(validatedEmail);
@@ -78,7 +75,7 @@ const resetPassword = async (req, res, next) => {
     token = validateResetToken(token);
     newPassword = validateResetPassword(newPassword, confirmPassword);
 
-    await resetPasswordService(token, newPassword, confirmPassword);
+    await resetPasswordService(token, newPassword);
     res.status(200).json({
       success: true,
       message: "Password reset successful. Please sign in.",
