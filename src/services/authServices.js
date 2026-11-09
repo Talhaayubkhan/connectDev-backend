@@ -7,10 +7,10 @@ const {
   validateNewPassword,
   validateResetToken,
 } = require("../utils/validation");
-const { getRuntimeConfig } = require("../config/env");
 const sendEmail = require("../utils/email/sendEmail");
 const resetPasswordTemplate = require("../utils/email/resetPasswordTemplate");
 const { serializeUser } = require("../utils/userSerializer");
+
 const signupService = async (userData) => {
   const { firstName, lastName, email, password } = validateSignupData(userData);
 
@@ -37,7 +37,6 @@ const loginService = async (email, password) => {
   if (!isMatch) throw new ValidationError("Invalid email or password.");
 
   const token = await user.getSignJWT();
-
   const safeUser = serializeUser(user, { includeEmail: true });
 
   return { user: safeUser, token };
@@ -52,6 +51,20 @@ const forgotPasswordService = async (email) => {
     return;
   }
 
+  const frontendOrigins = process.env.FRONTEND_URL
+    ?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  const frontendOrigin =
+    frontendOrigins?.[0] ||
+    (process.env.NODE_ENV === "production"
+      ? ""
+      : "http://localhost:5173");
+
+  if (!frontendOrigin) {
+    throw new Error("FRONTEND_URL is required in production.");
+  }
+
   const token = crypto.randomBytes(32).toString("hex");
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
@@ -59,8 +72,7 @@ const forgotPasswordService = async (email) => {
   user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
   await user.save();
 
-  const { frontendOrigins } = getRuntimeConfig();
-  const resetURL = `${frontendOrigins[0]}/auth/reset-password?token=${token}`;
+  const resetURL = `${frontendOrigin}/auth/reset-password?token=${token}`;
 
   try {
     await sendEmail(user.email, "Reset your password", {
@@ -82,7 +94,6 @@ const resetPasswordService = async (token, newPassword) => {
   validateNewPassword(newPassword);
 
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-
   const user = await User.findOne({
     resetPasswordToken: hashedToken,
     resetPasswordExpires: { $gt: Date.now() },
