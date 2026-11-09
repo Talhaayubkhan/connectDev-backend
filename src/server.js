@@ -3,10 +3,6 @@ const connectDB = require("./config/database");
 
 const PORT = process.env.PORT || 3000;
 
-// CHANGED: removed http.createServer(app) + initSocket(server).
-// That setup only existed to attach socket.io to the raw HTTP server.
-// Since chat/sockets are removed, app.listen() directly is simpler —
-// Express's app.listen() creates its own HTTP server internally anyway.
 connectDB()
   .then(() => {
     console.log("Database Connected Successfully!");
