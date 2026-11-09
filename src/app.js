@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
-const { getCorsOptions, getRuntimeConfig } = require("./config/env");
+const { ForbiddenError } = require("./utils/errors");
 const errorHandler = require("./middlewares/errorHandler");
 const notFound = require("./middlewares/notFound");
 const authRouter = require("./routes/authRouter");
@@ -10,12 +10,36 @@ const profileRouter = require("./routes/profileRouter");
 const connectionRequestRouter = require("./routes/connectionRequestRoutes");
 const userRouter = require("./routes/userRouter");
 
-const createApp = (config = getRuntimeConfig()) => {
+const getAllowedOrigins = () => {
+  const configuredOrigins = process.env.FRONTEND_URL
+    ?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (configuredOrigins?.length) return configuredOrigins;
+  return process.env.NODE_ENV === "production"
+    ? []
+    : ["http://localhost:5173"];
+};
+
+const corsOptions = {
+  credentials: true,
+  origin(origin, callback) {
+    // Requests without an Origin header include CLI and server-to-server clients.
+    if (!origin || getAllowedOrigins().includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new ForbiddenError("Origin is not allowed by CORS."));
+  },
+};
+
+const createApp = () => {
   const app = express();
 
   app.disable("x-powered-by");
   app.use(helmet());
-  app.use(cors(getCorsOptions(config)));
+  app.use(cors(corsOptions));
   app.use(express.json({ limit: "100kb" }));
   app.use(cookieParser());
 
