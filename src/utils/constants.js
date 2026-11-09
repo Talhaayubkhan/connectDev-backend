@@ -1,5 +1,3 @@
-const { getCookieOptions, getRuntimeConfig } = require("../config/env");
-
 const SENDER_FIELDS = [
   "firstName",
   "lastName",
@@ -14,8 +12,6 @@ const SENDER_FIELDS = [
   "createdAt",
   "updatedAt",
 ];
-
-const authTokenCookieOptions = getCookieOptions(getRuntimeConfig());
 
 const COMMON_PASSWORDS = new Set([
   "123456",
@@ -36,7 +32,6 @@ const PASSWORD_RULES = {
 
 module.exports = {
   SENDER_FIELDS,
-  authTokenCookieOptions,
   COMMON_PASSWORDS,
   PASSWORD_RULES,
 };

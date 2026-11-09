@@ -7,10 +7,10 @@ const {
   validateNewPassword,
   validateResetToken,
 } = require("../utils/validation");
-const { getRuntimeConfig } = require("../config/env");
 const sendEmail = require("../utils/email/sendEmail");
 const resetPasswordTemplate = require("../utils/email/resetPasswordTemplate");
 const { serializeUser } = require("../utils/userSerializer");
+
 const signupService = async (userData) => {
   const { firstName, lastName, email, password } = validateSignupData(userData);
 
@@ -59,8 +59,7 @@ const forgotPasswordService = async (email) => {
   user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
   await user.save();
 
-  const { frontendOrigins } = getRuntimeConfig();
-  const resetURL = `${frontendOrigins[0]}/auth/reset-password?token=${token}`;
+  const resetURL = `$/auth/reset-password?token=${token}`;
 
   try {
     await sendEmail(user.email, "Reset your password", {

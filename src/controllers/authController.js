@@ -4,7 +4,6 @@ const {
   forgotPasswordService,
   resetPasswordService,
 } = require("../services/authServices");
-const { authTokenCookieOptions } = require("../utils/constants");
 const {
   validateForgotPasswordEmail,
   validateResetToken,
@@ -31,7 +30,7 @@ const userLogin = async (req, res, next) => {
     const { user, token } = await loginService(email, password);
 
     // WHY: an HTTP-only cookie keeps the JWT unavailable to browser scripts.
-    res.cookie("token", token, authTokenCookieOptions);
+    res.cookie("token", token);
 
     res.status(200).json({
       success: true,
@@ -46,10 +45,10 @@ const userLogin = async (req, res, next) => {
 const userLogout = (req, res) => {
   // WHY: cookie identity flags must match or browsers may keep the old session.
   res.clearCookie("token", {
-    httpOnly: authTokenCookieOptions.httpOnly,
-    path: authTokenCookieOptions.path,
-    sameSite: authTokenCookieOptions.sameSite,
-    secure: authTokenCookieOptions.secure,
+    httpOnly: true,
+    path: "/",
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
   });
   res.status(200).json({ success: true, message: "Logout successful" });
 };
