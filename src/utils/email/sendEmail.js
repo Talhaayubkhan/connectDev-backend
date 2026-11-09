@@ -1,5 +1,4 @@
 const nodemailer = require("nodemailer");
-const { getRuntimeConfig } = require("../../config/env");
 
 let cachedTransporter;
 let cachedCredentials;
@@ -17,7 +16,8 @@ const getTransporter = (emailUser, emailPass) => {
 };
 
 const sendEmail = async (to, subject, { text, html }) => {
-  const { emailUser, emailPass } = getRuntimeConfig();
+  const emailUser = process.env.EMAIL_USER;
+  const emailPass = process.env.EMAIL_PASS;
   if (!emailUser || !emailPass) {
     throw new Error("EMAIL_USER and EMAIL_PASS are required to send email.");
   }
