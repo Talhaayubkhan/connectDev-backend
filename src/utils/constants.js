@@ -30,8 +30,20 @@ const PASSWORD_RULES = {
   minSymbols: 1,
 };
 
+const cookieSameSite = process.env.COOKIE_SAME_SITE || "lax";
+const authTokenCookieOptions = {
+  httpOnly: true,
+  path: "/",
+  sameSite: cookieSameSite,
+  secure:
+    process.env.COOKIE_SECURE === "true" ||
+    process.env.NODE_ENV === "production" ||
+    cookieSameSite === "none",
+};
+
 module.exports = {
   SENDER_FIELDS,
   COMMON_PASSWORDS,
   PASSWORD_RULES,
+  authTokenCookieOptions,
 };

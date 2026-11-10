@@ -37,7 +37,6 @@ const errorHandler = (rawError, _req, res, _next) => {
     console.error(`[${new Date().toISOString()}] ${rawError.stack || rawError}`);
   }
 
-  // WHY: unexpected messages can expose database, file, or authentication details.
   const message = error.isOperational
     ? error.message
     : "Something went wrong. Please try again.";

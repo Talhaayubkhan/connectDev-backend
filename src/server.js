@@ -1,19 +1,22 @@
 const app = require("./app");
 const connectDB = require("./config/database");
+const mongoose = require("mongoose");
 
-const PORT = process.env.PORT || 3000;
+let httpServer;
 
-const startServer = async () => {
+const startServer = async ({ config = {} } = {}) => {
   try {
-    await connectDB();
+    await connectDB(config.mongoUrl);
 
     console.log("Database Connected Successfully!");
 
-    const server = app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+    httpServer = app.listen(config.port || process.env.PORT || 3000, () => {
+      console.log(
+        `Server running on port ${config.port || process.env.PORT || 3000}`,
+      );
     });
 
-    return server;
+    return httpServer;
   } catch (error) {
     console.error("Server startup failed:", error.message);
     process.exitCode = 1;
@@ -21,10 +24,26 @@ const startServer = async () => {
   }
 };
 
+const shutdown = async () => {
+  if (httpServer) {
+    const server = httpServer;
+    httpServer = undefined;
+    await new Promise((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.connection.close();
+  }
+};
+
 if (require.main === module) {
+  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdown);
   startServer().catch(() => {
-    // Startup failure has already been logged.
+    // Startup failure is logged before the rejection reaches this handler.
   });
 }
 
-module.exports = { startServer };
+module.exports = { startServer, shutdown };

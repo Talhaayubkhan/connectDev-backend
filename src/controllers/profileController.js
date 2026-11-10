@@ -58,12 +58,7 @@ const changeProfilePassword = async (req, res, next) => {
 
     await changeUserPassword(req.user._id, currentPassword, newPassword);
 
-    res.clearCookie("token", {
-      httpOnly: authTokenCookieOptions.httpOnly,
-      path: authTokenCookieOptions.path,
-      sameSite: authTokenCookieOptions.sameSite,
-      secure: authTokenCookieOptions.secure,
-    });
+    res.clearCookie("token", authTokenCookieOptions);
 
     res.status(200).json({
       success: true,

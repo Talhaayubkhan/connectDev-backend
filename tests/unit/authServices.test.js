@@ -88,6 +88,27 @@ describe("authentication services", () => {
     );
   });
 
+  test("sends a reset link to the configured frontend", async () => {
+    const user = {
+      _id: "user-1",
+      email: "known@example.com",
+      resetPasswordExpires: undefined,
+      save: jest.fn().mockResolvedValue(undefined),
+    };
+    mockFindOne.mockResolvedValue(user);
+    mockSendEmail.mockResolvedValue(undefined);
+
+    await forgotPasswordService("known@example.com");
+
+    const [, , emailContent] = mockSendEmail.mock.calls[0];
+    expect(emailContent.text).toMatch(
+      /^Reset your password: http:\/\/localhost:5173\/auth\/reset-password\?token=[a-f0-9]{64}$/,
+    );
+    expect(emailContent.html).toContain(
+      "http://localhost:5173/auth/reset-password?token=",
+    );
+  });
+
   test("reset replaces the password, clears reset state, and revokes sessions", async () => {
     const user = {
       password: "old-hash",

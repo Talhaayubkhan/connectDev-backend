@@ -1,10 +1,12 @@
+require("dotenv").config({ quiet: true });
 const express = require("express");
-// const cors = require("cors");
+const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 
 const errorHandler = require("./middlewares/errorHandler");
 const notFound = require("./middlewares/notFound");
+const { ForbiddenError } = require("./utils/errors");
 
 const authRouter = require("./routes/authRouter");
 const profileRouter = require("./routes/profileRouter");
@@ -13,15 +15,29 @@ const userRouter = require("./routes/userRouter");
 
 const app = express();
 
-// Security middleware
 app.disable("x-powered-by");
 app.use(helmet());
 
-// Request parsing and CORS
+const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new ForbiddenError("Origin is not allowed by CORS."));
+    },
+    credentials: true,
+  }),
+);
+
 app.use(express.json({ limit: "100kb" }));
 app.use(cookieParser());
 
-// Health check
 app.get("/health", (_req, res) => {
   res.status(200).json({
     success: true,
@@ -29,13 +45,11 @@ app.get("/health", (_req, res) => {
   });
 });
 
-// Application routes
 app.use("/", authRouter);
 app.use("/", profileRouter);
 app.use("/", connectionRequestRouter);
 app.use("/", userRouter);
 
-// Error handling
 app.use(notFound);
 app.use(errorHandler);
 
